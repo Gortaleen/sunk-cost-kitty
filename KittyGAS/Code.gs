@@ -17,6 +17,7 @@ function getWinnings(gameName, prevDrawing) {
             .getProperty('numbersSpreadsheetId');
     var playedArray = SpreadsheetApp.openById(numbersSsId)
             .getSheetByName(gameName).getDataRange().getValues();
+    var drawDate = prevDrawing[0];
     var winningNums = prevDrawing.slice(1, 6);
     var winningGameBall = prevDrawing[7];
     var jackpot = prevDrawing[8].match(/\d+/)[0] * 1000000;
@@ -53,7 +54,7 @@ function getWinnings(gameName, prevDrawing) {
             break;
         case '41':
             if (gameName === 'Mega Millions') {
-                winnings += 5000;
+                winnings += (drawDate > 20171028 ? 10000 : 5000);
             } else if (gameName === 'Powerball') {
                 winnings += 50000;
             }
@@ -67,35 +68,35 @@ function getWinnings(gameName, prevDrawing) {
             break;
         case '31':
             if (gameName === 'Mega Millions') {
-                winnings += 50;
+                winnings += (drawDate > 20171028 ? 200 : 50);
             } else if (gameName === 'Powerball') {
                 winnings += 100;
             }
             break;
         case '30':
             if (gameName === 'Mega Millions') {
-                winnings += 5;
+                winnings += (drawDate > 20171028 ? 10 : 5);
             } else if (gameName === 'Powerball') {
                 winnings += 7;
             }
             break;
         case '21':
             if (gameName === 'Mega Millions') {
-                winnings += 5;
+                winnings += (drawDate > 20171028 ? 10 : 5);
             } else if (gameName === 'Powerball') {
                 winnings += 7;
             }
             break;
         case '11':
             if (gameName === 'Mega Millions') {
-                winnings += 2;
+                winnings += (drawDate > 20171028 ? 4 : 2);
             } else if (gameName === 'Powerball') {
                 winnings += 4;
             }
             break;
         case '01':
             if (gameName === 'Mega Millions') {
-                winnings += 1;
+                winnings += (drawDate > 20171028 ? 2 : 1);
             } else if (gameName === 'Powerball') {
                 winnings += 4;
             }
@@ -272,7 +273,7 @@ function lotteryMailer(gameName, estJackpotRow, buyInThreshold) {
 
 function megaMillionsMailer() {
     'use strict';
-    lotteryMailer('Mega Millions', 2, 90);
+    lotteryMailer('Mega Millions', 2, 100);
 }
 
 function powerballMailer() {
