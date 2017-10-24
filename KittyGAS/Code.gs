@@ -1,42 +1,5 @@
-/*******************************************************************************
-1. Separate HTML, CSS, and JS etc.
-https://developers.google.com/apps-script/guides/html/best-practices
-2. CSS, HTML indentation etc.
-http://google-styleguide.googlecode.com/svn/trunk/htmlcssguide.xml
-http://cssguidelin.es/#naming-conventions
-2. JavaScript indentation etc.
-http://google-styleguide.googlecode.com/svn/trunk/javascriptguide.xml
-3. Get jquery from Google's Content Delivery Network:
-https://developers.google.com/speed/libraries/devguide#jquery
-4.
-http://www.w3schools.com/js/js_best_practices.asp
-http://contribute.jquery.org/style-guide/js/
-5. Use windows.x for globals when in NATIVE or EMULATED modes etc.
-https://developers.google.com/apps-script/guides/html/restrictions
-6. Crap (i.e., lint) detectors:
-http://jslint.com/
-http://jshint.com/
-https://developers.google.com/closure/
-7. Caja restrictions
-https://developers.google.com/apps-script/guides/html/restrictions#css
-8. LotteryWEB LIVE urls:
-   a. private Google account:
-https://script.google.com/macros/s/AKfycbwn4Nvaq7W6Kr8BCvSQW-_ar87Nh1HnZ3ACqZCdTW0Q4h4l8RYJ/exec
-   b. meditech Google account:
-https://script.google.com/a/macros/meditech.com/s/AKfycbzKNfcDTO7NiVVGGcdM_7DksckZpQd9bxcsX8d86cRh6_obzIbf/exec
- *******************************************************************************/
-
-/*
- Proposed description/algorithm:
- 1. Web page to enter paid statuses and update the kitty account balances.
- 2. Trigger events for $100 million+ drawings:
- a. when estimated jackpot is $100 million+, send email (everyone in group or
- admins only?).
- b. after drawing deduct from kitty 20 tickets X $2 for powerball or $1 for
- mega millions.
- c. after drawing add winnings to kitty.
- 3. Trigger event to send email when kitty goes below a certain value.
- */
+/*jslint browser, for, maxlen: 80, single, white*/
+/*global Logger, MailApp, PropertiesService, SpreadsheetApp*/
 
 /**
  * Read numbers played from the spreadsheet, compare them to the winning
@@ -51,10 +14,16 @@ https://script.google.com/a/macros/meditech.com/s/AKfycbzKNfcDTO7NiVVGGcdM_7Dksc
 function getWinnings(gameName, prevDrawing) {
     'use strict';
     var numbersSsId = PropertiesService.getScriptProperties()
-            .getProperty('numbersSpreadsheetId'), playedArray = SpreadsheetApp
-            .openById(numbersSsId).getSheetByName(gameName).getDataRange()
-            .getValues(), winningNums = prevDrawing.slice(1, 6), winningGameBall = prevDrawing[7], jackpot = prevDrawing[8]
-            .match(/\d+/)[0] * 1000000, winnings = 0, numsMatch = 0, gameBallMatch = '', i = 0;
+            .getProperty('numbersSpreadsheetId');
+    var playedArray = SpreadsheetApp.openById(numbersSsId)
+            .getSheetByName(gameName).getDataRange().getValues();
+    var winningNums = prevDrawing.slice(1, 6);
+    var winningGameBall = prevDrawing[7];
+    var jackpot = prevDrawing[8].match(/\d+/)[0] * 1000000;
+    var winnings = 0;
+    var numsMatch = 0;
+    var gameBallMatch = '';
+    var i = 0;
     for (i = 0; i < playedArray.length; i += 1) {
         numsMatch = 0;
         gameBallMatch = '';
@@ -74,7 +43,7 @@ function getWinnings(gameName, prevDrawing) {
             numsMatch += 1;
         }
         gameBallMatch = (playedArray[i][5] === winningGameBall) ? '1' : '0';
-        // TODO: put game prizes in an object.
+        // to do: put game prizes in an object.
         switch (String(numsMatch) + gameBallMatch) {
         case '51':
             winnings += jackpot;
@@ -149,9 +118,12 @@ function getWinnings(gameName, prevDrawing) {
  */
 function updateAccount(drawDate, gameName, winnings) {
     'use strict';
-    var credit = winnings, debit = 0, kittySsId = PropertiesService
-            .getScriptProperties().getProperty('kittySpreadsheetId'), accountSheet = SpreadsheetApp
-            .openById(kittySsId).getSheetByName('balance sheet');
+    var credit = winnings;
+    var debit = 0;
+    var kittySsId = PropertiesService.getScriptProperties()
+            .getProperty('kittySpreadsheetId');
+    var accountSheet = SpreadsheetApp.openById(kittySsId)
+            .getSheetByName('balance sheet');
     switch (gameName) {
     case 'Mega Millions':
         debit = 20;
@@ -224,15 +196,23 @@ function formatSendEmail(bcc,
 function lotteryMailer(gameName, estJackpotRow, buyInThreshold) {
     'use strict';
     // get previous jackpot values
-    var scriptProps = PropertiesService.getScriptProperties().getProperties(), drawingSs = SpreadsheetApp
-            .openById(scriptProps.drawingSpreadsheetId), prevDrawing = drawingSs
-            .getSheetByName(gameName).getRange(2, 1, 1, 9).getValues()[0], prevJackpot = prevDrawing[8], drawDate = prevDrawing[0], estJackpot = drawingSs
-            .getSheetByName('Estimated Jackpots').getRange(estJackpotRow, 3)
-            .getValue(), kittySs = SpreadsheetApp
-            .openById(scriptProps.kittySpreadsheetId), kittyBalance = kittySs
-            .getSheetByName('balance sheet').getRange(1, 6).getValue(), bcc = kittySs
-            .getSheetByName('bcc').getDataRange().getValues().toString(), lotteryWebUrl = scriptProps.lotteryWebUrl, winnings = getWinnings(gameName,
-                                                                                                                                            prevDrawing), prevJackpotMult = 1, estJackpotMult = 1;
+    var scriptProps = PropertiesService.getScriptProperties().getProperties();
+    var drawingSs = SpreadsheetApp.openById(scriptProps.drawingSpreadsheetId);
+    var prevDrawing = drawingSs.getSheetByName(gameName).getRange(2, 1, 1, 9)
+            .getValues()[0];
+    var prevJackpot = prevDrawing[8];
+    var drawDate = prevDrawing[0];
+    var estJackpot = drawingSs.getSheetByName('Estimated Jackpots')
+            .getRange(estJackpotRow, 3).getValue();
+    var kittySs = SpreadsheetApp.openById(scriptProps.kittySpreadsheetId);
+    var kittyBalance = kittySs.getSheetByName('balance sheet').getRange(1, 6)
+            .getValue();
+    var bcc = kittySs.getSheetByName('bcc').getDataRange().getValues()
+            .toString();
+    var lotteryWebUrl = scriptProps.lotteryWebUrl;
+    var winnings = getWinnings(gameName, prevDrawing);
+    var prevJackpotMult = 1;
+    var estJackpotMult = 1;
     // convert jackpot strings (e.g., '$200 Million') to numbers (e.g., 200)
     if (prevJackpot.match(/Billion/i)) {
         prevJackpotMult = 1000;
