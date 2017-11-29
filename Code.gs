@@ -2,19 +2,22 @@
     browser, devel, maxlen: 80, white
 */
 /*global
-    Logger, PropertiesService, SpreadsheetApp
+    Logger, MailApp, PropertiesService, SpreadsheetApp
 */
 /*property
-    appendRow, ball, bonus, concat, date, drawingSpreadsheetId, end,
+    appendRow, ball, bcc, bonus, cc, concat, date, drawingSpreadsheetId, end,
     estJackpot, filter, forEach, gameRulesSpreadsheetId, getActive,
     getDataRange, getDate, getDisplayValues, getFullYear, getMonth,
     getProperties, getScriptProperties, getSheetByName, getSheetName,
-    getSheets, getTime, jackpot, keys, length, map, match, nextDate, numArr,
-    openById, playsSpreadsheetId, price, reduce, replace, rulesMap, setHours,
-    setMilliseconds, setMinutes, setSeconds, slice, some, sort, split, start,
-    threshold, toLowerCase, toString
+    getSheets, getTime, htmlBody, indexOf, jackpot, keys, length, map, match,
+    name, nextDate, noReply, numArr, openById, playsSpreadsheetId, price,
+    reduce, replace, rulesMap, sendEmail, setHours, setMilliseconds,
+    setMinutes, setSeconds, slice, some, sort, split, start, threshold,
+    toDateString, toLowerCase, toString
 */
 
+// TODO: fix bug with getNewDrawings where it will re-enter a drawing logged
+//       on the kitty balance sheet before the last entry.
 // TODO: fix jsdoc comments
 // TODO: work on JS Module Patterns
 
@@ -182,7 +185,7 @@ function getKittyLastArr() {
 function getNewDrawings(kittyLastArr) {
   "use strict";
   var lastKittyDate = new Date(kittyLastArr.slice(-1)[0][0]);
-  var kittyGameName = kittyLastArr.slice(-1)[0][1];
+  var kittyGameNameArr = kittyLastArr.map(function (arr) { return arr[1]; });
   return SpreadsheetApp.openById(
     PropertiesService
     .getScriptProperties()
@@ -202,7 +205,7 @@ function getNewDrawings(kittyLastArr) {
             return true;
           }
           return curDate.getTime() === lastKittyDate.getTime() 
-          && drawGameName !== kittyGameName;
+          && kittyGameNameArr.indexOf(drawGameName) < 0;
         })
       .map(
         function (drawArr) {
@@ -307,11 +310,12 @@ function getWins(activeDrawsObj, gamesObj, playsObj) {
                     }).length;
                   return total + matchTemp;
                 }, 0).toString();
-              noOfPlays = index + 1;  // number of plays for this drawing
               var ball = "";
               var bonus = 1;
               var match = "";
               
+              noOfPlays = index + 1;  // number of plays for this drawing
+
               if (activePlayObj.ball !== ""
                   && activePlayObj.ball !== null
                   && activePlayObj.ball !== undefined) {
@@ -372,6 +376,53 @@ function updateKitty(wins, gamesObj) {
 
 //******************************************************************************
 
+/**
+* @param {object} wins - [[date.getTime(),gameName,winnings,#of plays],...]
+* @param {object} nextDrawingsObj - {name:[{date,numArr,jackpot,ball,bonus,
+*                                           nextDate,estJackpot},...],...
+*                                    }
+* @param {object} gamesObj - {name: {threshold, price, rules},...}
+*/
+function sendMail(wins, newDrawingsObj, gamesObj) {
+  "use strict";
+  // if active--new--result (threshold met, dates of play in range, and new) 
+  // then:  calc, file, email results.
+  // if inactive but next jackpot above threshold, send advisory email.
+  var recipient = "coemgen@hotmail.com";
+  var subject = "testing sunk cost";
+  var body = wins.reduce(
+    function (str, win) {
+      var date = new Date(win[0]);
+      return str + date.toDateString() + " " 
+      + win[1] + " winnings $" + win[2] + "\n";
+    }, "");
+  var bcc = "";
+  var cc = "";
+  var htmlBody = wins.reduce(
+    function (str, win) {
+      var date = new Date(win[0]);
+      return str + "<p>" + date.toDateString() + "&nbsp;" 
+      + win[1] + "&nbsp;winnings&nbsp;&#36;" + win[2] + "</p>";
+    }, "");
+  var options = {
+    bcc: bcc,
+    cc: cc,
+    htmlBody: htmlBody,
+    name: "Sunk Cost",
+    noReply: true
+  };
+  // check drawings:
+  // if current jackpot < threshold AND next jackpot >= threshold add advisory
+  // if current jackpot >= threshold AND next jackpot < threshold add advisory
+  // 
+  if (wins.length === 0) {
+    return;
+  }
+  MailApp.sendEmail(recipient, subject, body, options);
+}
+
+//******************************************************************************
+
 /** Sunk Cost Kitty - calculates, stores, and sends results. */
 function main() {
   "use strict";
@@ -400,17 +451,9 @@ function main() {
   var wins = getWins(activeDrawsObj, gamesObj, playsObj);
   updateKitty(wins, gamesObj);
   
-  // 3.2 send email for newly active games
+  // 3.2 send email for with results and newly active games
+  sendMail(wins, newDrawingsObj, gamesObj);
   
-  // if active--new--result (threshold met, dates of play in range, and new) 
-  // then:  calc, file, email results.
-  
-  // 1. game must have entry in Game rules
-  // 2. play must meet minimum threshold
-  // 3. play must be active for drawing date
-  // 4. result must be "new" (i.e., not already filed to kitty ss)
-  
-  // if inactive but next jackpot above threshold, send advisory email.
 }
 
 //******************************************************************************
