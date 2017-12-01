@@ -5,47 +5,62 @@
     Logger, MailApp, PropertiesService, SpreadsheetApp
 */
 /*property
-    appendRow, ball, bcc, bonus, cc, concat, date, drawingSpreadsheetId, end,
-    estJackpot, filter, forEach, gameRulesSpreadsheetId, getActive,
-    getDataRange, getDate, getDisplayValues, getFullYear, getMonth,
-    getProperties, getScriptProperties, getSheetByName, getSheetName,
-    getSheets, getTime, htmlBody, indexOf, jackpot, keys, length, map, match,
-    name, nextDate, noReply, numArr, openById, playsSpreadsheetId, price,
-    reduce, replace, rulesMap, sendEmail, setHours, setMilliseconds,
-    setMinutes, setSeconds, slice, some, sort, split, start, threshold,
-    toDateString, toLowerCase, toString
+    appendRow, ball, bcc, bonus, cc, concat, date, dollarsToNum,
+    drawingSpreadsheetId, end, estJackpot, filter, forEach,
+    gameRulesSpreadsheetId, getActive, getDataRange, getDate, getDisplayValues,
+    getFullYear, getMonth, getProperties, getScriptProperties, getSheetByName,
+    getSheetName, getSheets, getSimpleDate, getTime, htmlBody, indexOf,
+    jackpot, keys, length, log, map, match, name, nextDate, noReply, numArr,
+    openById, playsSpreadsheetId, price, reduce, replace, rulesMap, sendEmail,
+    setHours, setMilliseconds, setMinutes, setSeconds, slice, some, sort,
+    split, start, threshold, toDateString, toLowerCase, toString
 */
-
-// TODO: fix bug with getNewDrawings where it will re-enter a drawing logged
-//       on the kitty balance sheet before the last entry.
+// TODO: Add names for "inline" functions used as callbacks for map, etc.
 // TODO: fix jsdoc comments
 // TODO: work on JS Module Patterns
-
+//
 //********************************* Utilities **********************************
+var DEBUG = true;
 
-function getTodayDate() {
+var utils = (function () {
   "use strict";
-  var today = new Date();
-  today.setHours(0);
-  today.setMinutes(0);
-  today.setSeconds(0);
-  today.setMilliseconds(0);
-  return today;
-}
-
-function dollarsToNum(dollars) {
-  "use strict";
-  if (typeof dollars === "number") {
-    return dollars;
+  
+  /**
+  * @returns {object} today's with hours,minutes,seconds,and ms set to 0.
+  */
+  function getSimpleDate() {
+    var today = new Date();
+    today.setHours(0);
+    today.setMinutes(0);
+    today.setSeconds(0);
+    today.setMilliseconds(0);
+    return today;
   }
-  if (dollars.match(/^\$\d+(,\d{3})*(\.\d+)?$/)) {
-    return Number(
-      dollars.match(/\d+(,\d{3})*(\.\d+)?$/)[0]
-      .replace(/,/g, "")
-    );
+  
+  function dollarsToNum(dollars) {
+    if (typeof dollars === "number") {
+      return dollars;
+    }
+    if (dollars.match(/^\$\d+(,\d{3})*(\.\d+)?$/)) {
+      return Number(
+        dollars.match(/\d+(,\d{3})*(\.\d+)?$/)[0]
+        .replace(/,/g, "")
+      );
+    }
+    if (dollars.match(/^\$\d+(,\d{3})*(\.\d+)?\sMillion$/)) {
+      return Number(
+        dollars.match(/\d+(,\d{3})*(\.\d+)?/)[0].replace(/,/g, "")
+        ) * 1000000;
+    }
+    return undefined;
   }
-  return undefined;
-}
+  
+  return {
+    getSimpleDate: getSimpleDate,
+    dollarsToNum: dollarsToNum
+  };
+  
+}());
 
 //**************************** Process Game Rules ******************************
 
@@ -61,10 +76,10 @@ function dollarsToNum(dollars) {
 function rulesArrToObj(rulesArr) {
   "use strict";
   return rulesArr.filter(
-    function (curVal) {
+    function getMatchRules(curVal) {
       return curVal[0] === "match";
     }).reduce(
-    function (obj, arr) {
+    function matchRulesArrToObj(obj, arr) {
       // arr == ["match", pattern, payout]
       // obj == {{pattern: payout}, ... }
       var nam = "";
@@ -81,7 +96,8 @@ function rulesArrToObj(rulesArr) {
       }
       obj[nam] = val;
       return obj;
-    }, {});
+    }, {}
+  );
 }
 
 /**
@@ -95,7 +111,7 @@ function getGames() {
     PropertiesService.getScriptProperties()
     .getProperties()
     .gameRulesSpreadsheetId);
-  return ss.getSheets().reduce(function (obj, sheetObj) {
+  return ss.getSheets().reduce(function gameArrToObj(obj, sheetObj) {
     var detailsArr = sheetObj.getDataRange().getDisplayValues();
     obj[detailsArr[1][1]] = {
       threshold: detailsArr[4][1] || "$0",
@@ -115,25 +131,25 @@ function getGames() {
 */
 function getPlays() {
   "use strict";
-  var today = getTodayDate();
+  var today = utils.getSimpleDate();
   var start = {};
   var end = {};
   return SpreadsheetApp.openById(
     PropertiesService.getScriptProperties()
     .getProperties()
     .playsSpreadsheetId)
-  .getSheets().reduce(function (obj, sheet) {
+  .getSheets().reduce(function playArrToObj(obj, sheet) {
     var playsArr = sheet.getDataRange().getDisplayValues();
     var playObjsArr = playsArr.slice(1).map(
-      function (playArr) {
+      function putPlaysInObj(playArr) {
         start = (playArr[8]) ? new Date(playArr[8]) : today;
         end = (playArr[9]) ? new Date(playArr[9]) : today;
         return {
-          numArr:playArr.slice(0,6)
-          .filter(function (num) {
+          numArr: playArr.slice(0, 6)
+          .filter(function removeFalsy(num) {
             return num;
           })
-          .map(function (num) {
+          .map(function padToTwoDigits(num) {
             if (num.length === 1) {
               return "0" + num;
             }
@@ -185,7 +201,9 @@ function getKittyLastArr() {
 function getNewDrawings(kittyLastArr) {
   "use strict";
   var lastKittyDate = new Date(kittyLastArr.slice(-1)[0][0]);
-  var kittyGameNameArr = kittyLastArr.map(function (arr) { return arr[1]; });
+  var kittyGameNameArr = kittyLastArr.map(function (arr) {
+    return arr[1];
+  });
   return SpreadsheetApp.openById(
     PropertiesService
     .getScriptProperties()
@@ -204,8 +222,8 @@ function getNewDrawings(kittyLastArr) {
           if (curDate.getTime() > lastKittyDate.getTime()) {
             return true;
           }
-          return curDate.getTime() === lastKittyDate.getTime() 
-          && kittyGameNameArr.indexOf(drawGameName) < 0;
+          return curDate.getTime() === lastKittyDate.getTime() &&
+            kittyGameNameArr.indexOf(drawGameName) < 0;
         })
       .map(
         function (drawArr) {
@@ -248,21 +266,21 @@ function getActiveDraws(newDrawingsObj, playsObj, gamesObj) {
           return playsObj[keyName].some(
             function (playObj) {
               // drawing has active play
-              return playObj.start.getTime() <= drawObj.date.getTime() && 
+              return playObj.start.getTime() <= drawObj.date.getTime() &&
                 drawObj.date.getTime() <= playObj.end.getTime();
             });
         })
       .filter(
         // only return drawings whose jackpot meets minimum threshold
         function (drawObj) {
-          if (gamesObj[keyName].threshold === ""
-              || gamesObj[keyName].threshold === null
-              || gamesObj[keyName].threshold === undefined) {
+          if (gamesObj[keyName].threshold === "" ||
+              gamesObj[keyName].threshold === null ||
+              gamesObj[keyName].threshold === undefined) {
             return true;
           }
           return drawObj.jackpot >= gamesObj[keyName].threshold;
         });
-      if (activeDrawsArr.length >0) {
+      if (activeDrawsArr.length > 0) {
         obj[keyName] = activeDrawsArr;
       }
       return obj;
@@ -286,16 +304,16 @@ function getWins(activeDrawsObj, gamesObj, playsObj) {
     
     function (result, gameName) {
       var newVal = activeDrawsObj[gameName].map(
-
+        
         function (drawObj) {
-          var noOfPlays = 0;  // number of active plays for one drawing
+          var noOfPlays = 0; // number of active plays for one drawing
           var winnings = playsObj[gameName]
           .filter(
             
             function (playObj) {
               // active plays
-              return playObj.start.getTime() <= drawObj.date.getTime()
-              && drawObj.date.getTime() <= playObj.end.getTime(); 
+              return playObj.start.getTime() <= drawObj.date.getTime() &&
+                drawObj.date.getTime() <= playObj.end.getTime();
             })
           .reduce(
             
@@ -314,29 +332,29 @@ function getWins(activeDrawsObj, gamesObj, playsObj) {
               var bonus = 1;
               var match = "";
               
-              noOfPlays = index + 1;  // number of plays for this drawing
-
-              if (activePlayObj.ball !== ""
-                  && activePlayObj.ball !== null
-                  && activePlayObj.ball !== undefined) {
+              noOfPlays = index + 1; // number of plays for this drawing
+              
+              if (activePlayObj.ball !== "" &&
+                  activePlayObj.ball !== null &&
+                  activePlayObj.ball !== undefined) {
                 ball = (activePlayObj.ball === drawObj.ball) ? "1" : "0";
                 match = matches + ball;
               } else {
                 match = "0" + matches;
               }
               wins = gamesObj[gameName].rulesMap[match] || "$0";
-              if (activePlayObj.bonus !== ""
-                  && activePlayObj.bonus !== null
-                  && activePlayObj.bonus !== undefined
-                  && wins !== "jackpot") {
+              if (activePlayObj.bonus !== "" &&
+                  activePlayObj.bonus !== null &&
+                  activePlayObj.bonus !== undefined &&
+                  wins !== "jackpot") {
                 if (activePlayObj.bonus === drawObj.bonus) {
                   bonus = activePlayObj.bonus;
                 }
               }
               if (wins === "jackpot") {
-                wins = dollarsToNum(drawObj.jackpot);
+                wins = utils.dollarsToNum(drawObj.jackpot);
               } else {
-                wins = dollarsToNum(wins);
+                wins = utils.dollarsToNum(wins);
               }
               // total
               return total + (wins * bonus);
@@ -360,16 +378,21 @@ function updateKitty(wins, gamesObj) {
       var plays = win[3];
       var date = new Date(win[0]);
       var month = date.getMonth() + 1;
-      var dateStr = month.toString()
-      + "/" 
-      + date.getDate() 
-      + "/" + date.getFullYear();
+      var dateStr = month.toString() +
+        "/" +
+          date.getDate() +
+            "/" + date.getFullYear();
       var rowContents = [
         dateStr,
         win[1],
-        dollarsToNum(win[2]),
-        dollarsToNum(gamesObj[win[1]].price) * plays
-        ];
+        utils.dollarsToNum(win[2]),
+        utils.dollarsToNum(gamesObj[win[1]].price) * plays
+      ];
+      if (DEBUG === true) {
+        Logger.log(rowContents);
+//        debugger;
+        return;
+      }
       kittySsObj.getSheetByName("Balance Sheet").appendRow(rowContents);
     });
 }
@@ -385,37 +408,115 @@ function updateKitty(wins, gamesObj) {
 */
 function sendMail(wins, newDrawingsObj, gamesObj) {
   "use strict";
-  // if active--new--result (threshold met, dates of play in range, and new) 
-  // then:  calc, file, email results.
-  // if inactive but next jackpot above threshold, send advisory email.
-  var recipient = "coemgen@hotmail.com";
+  //
+  // check drawings:
+  // if current jackpot < threshold AND next jackpot >= threshold add advisory
+  // if current jackpot >= threshold AND next jackpot < threshold add advisory
+  //
+  // TODO: if active--new--result (threshold met, dates of play in range, and 
+  //       new) then: email results.
+  //
+  // TODO: if game has a threshold and current jackpot is below threshold and
+  //       next jackpot is above threshold, send advisory email.
+  //
+  // TODO: if jackpot is one for active game send advisory email.
+  //
+  // TODO: add kitty balance
+  //
+  var recipient = "kevin.griffin@lowerfallsweb.com";
   var subject = "testing sunk cost";
-  var body = wins.reduce(
-    function (str, win) {
-      var date = new Date(win[0]);
-      return str + date.toDateString() + " " 
-      + win[1] + " winnings $" + win[2] + "\n";
-    }, "");
-  var bcc = "";
+  var body;
+  var bcc = "kgriffin@meditech,coemgen@hotmail.com"; // get from bcc sheet
   var cc = "";
-  var htmlBody = wins.reduce(
+  var htmlBody;
+  var options;
+  // check for newly active game(s)
+  var alertStr = Object.keys(newDrawingsObj)
+  .map(
+    // object key is gameName
+    function checkActive(gameName) {
+      
+      var currDraw = newDrawingsObj[gameName].slice(-1)[0];
+      // current jpt < threshold && est jpt >= threshold
+      var newlyActive;
+      var jackpot;
+      var estJackpot;
+      var threshold;
+      var newlyInactive;
+      
+      if (currDraw === null
+          || currDraw === undefined
+          || currDraw === "") {
+        return "";
+      }
+      if (gamesObj[gameName].threshold === null
+          || gamesObj[gameName].threshold === undefined
+          || gamesObj[gameName].threshold === "") {
+        return "";
+      }
+      if (currDraw.jackpot === null
+          || currDraw.jackpot === undefined
+          || currDraw.jackpot === "") {
+        return "";
+      }
+      if (currDraw.estJackpot === null
+          || currDraw.estJackpot === undefined
+          || currDraw.estJackpot === "") {
+        return "";
+      }
+      
+      jackpot = utils.dollarsToNum(currDraw.jackpot);
+      estJackpot = utils.dollarsToNum(currDraw.estJackpot);
+      threshold = utils.dollarsToNum(gamesObj[gameName].threshold);
+      
+      newlyActive = jackpot < threshold && threshold <= estJackpot;
+      if (newlyActive === true) {
+        return gameName + " is now active. The estimated jackpot for "
+        + currDraw.nextDate + " is " + currDraw.estJackpot + ".";
+      }
+      
+      newlyInactive = jackpot >= threshold && threshold > estJackpot;
+      if (newlyInactive === true) {
+        return "The current " + gameName + " run has ended.";
+      }
+      
+      return "";
+    })
+  .filter(
+    function validText(str) {
+      return str.length > 0;
+    });
+  
+  body = wins.reduce(
     function (str, win) {
       var date = new Date(win[0]);
-      return str + "<p>" + date.toDateString() + "&nbsp;" 
-      + win[1] + "&nbsp;winnings&nbsp;&#36;" + win[2] + "</p>";
+      return str + date.toDateString() + " " +
+        win[1] + " winnings $" + win[2] + "\n";
     }, "");
-  var options = {
+  body += alertStr + "\n";
+  
+  htmlBody = wins.reduce(
+    function (str, win) {
+      var date = new Date(win[0]);
+      return str + "<p>" + date.toDateString() + "&nbsp;" +
+        win[1] + "&nbsp;winnings&nbsp;&#36;" + win[2] + "</p>";
+    }, "");
+  htmlBody += "<p>" + alertStr + "</p>";
+  
+  options = {
     bcc: bcc,
     cc: cc,
     htmlBody: htmlBody,
     name: "Sunk Cost",
     noReply: true
   };
-  // check drawings:
-  // if current jackpot < threshold AND next jackpot >= threshold add advisory
-  // if current jackpot >= threshold AND next jackpot < threshold add advisory
-  // 
+  
   if (wins.length === 0) {
+    return;
+  }
+  if (DEBUG === true) {
+    Logger.log("%s %s %s %s\n", recipient, subject, body, options);
+//    debugger;
     return;
   }
   MailApp.sendEmail(recipient, subject, body, options);
@@ -451,7 +552,7 @@ function main() {
   var wins = getWins(activeDrawsObj, gamesObj, playsObj);
   updateKitty(wins, gamesObj);
   
-  // 3.2 send email for with results and newly active games
+  // 3.2 send email for results and newly active games
   sendMail(wins, newDrawingsObj, gamesObj);
   
 }
