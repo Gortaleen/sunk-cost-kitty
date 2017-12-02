@@ -20,7 +20,7 @@
 // TODO: work on JS Module Patterns
 //
 //********************************* Utilities **********************************
-var DEBUG = true;
+var DEBUG = false;
 
 var utils = (function () {
   "use strict";
@@ -431,7 +431,7 @@ function sendMail(wins, newDrawingsObj, gamesObj) {
   var htmlBody;
   var options;
   // check for newly active game(s)
-  var alertStr = Object.keys(newDrawingsObj)
+  var alertArr = Object.keys(newDrawingsObj)
   .map(
     // object key is gameName
     function checkActive(gameName) {
@@ -490,23 +490,29 @@ function sendMail(wins, newDrawingsObj, gamesObj) {
   body = wins.reduce(
     function (str, win) {
       var date = new Date(win[0]);
-      return str + date.toDateString() + " " +
-        win[1] + " winnings $" + win[2] + "\n";
-    }, "");
-  body += alertStr + "\n";
+      return str + date.toDateString() + "\t" +
+        win[1] + "\t$" + win[2] + "\n";
+    }, "Recent results (Date, Game, Winnngs):\n");
+  alertArr.forEach(
+    function (alertStr) {
+        body += alertStr + "\n";
+    });
   
   htmlBody = wins.reduce(
     function (str, win) {
       var date = new Date(win[0]);
       return str + "<p>" + date.toDateString() + "&nbsp;" +
         win[1] + "&nbsp;winnings&nbsp;&#36;" + win[2] + "</p>";
-    }, "");
-  htmlBody += "<p>" + alertStr + "</p>";
+    }, "<h4>Recent results (Date, Game, Winnings):</h4>");
+  alertArr.forEach(
+    function (alertStr) {
+      htmlBody += "<p>" + alertStr + "</p>";
+    });
   
   options = {
     bcc: bcc,
     cc: cc,
-    htmlBody: htmlBody,
+//    htmlBody: htmlBody,
     name: "Sunk Cost",
     noReply: true
   };
