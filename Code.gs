@@ -4,63 +4,12 @@
 /*global
     Logger, MailApp, PropertiesService, SpreadsheetApp
 */
-/*property
-    appendRow, ball, bcc, bonus, cc, concat, date, dollarsToNum,
-    drawingSpreadsheetId, end, estJackpot, filter, forEach,
-    gameRulesSpreadsheetId, getActive, getDataRange, getDate, getDisplayValues,
-    getFullYear, getMonth, getProperties, getScriptProperties, getSheetByName,
-    getSheetName, getSheets, getSimpleDate, getTime, htmlBody, indexOf,
-    jackpot, keys, length, log, map, match, name, nextDate, noReply, numArr,
-    openById, playsSpreadsheetId, price, reduce, replace, rulesMap, sendEmail,
-    setHours, setMilliseconds, setMinutes, setSeconds, slice, some, sort,
-    split, start, threshold, toDateString, toLowerCase, toString
-*/
 // TODO: Add names for "inline" functions used as callbacks for map, etc.
 // TODO: fix jsdoc comments
 // TODO: work on JS Module Patterns
 //
-//********************************* Utilities **********************************
-var DEBUG = false;
 
-var utils = (function () {
-  "use strict";
-  
-  /**
-  * @returns {object} today's with hours,minutes,seconds,and ms set to 0.
-  */
-  function getSimpleDate() {
-    var today = new Date();
-    today.setHours(0);
-    today.setMinutes(0);
-    today.setSeconds(0);
-    today.setMilliseconds(0);
-    return today;
-  }
-  
-  function dollarsToNum(dollars) {
-    if (typeof dollars === "number") {
-      return dollars;
-    }
-    if (dollars.match(/^\$\d+(,\d{3})*(\.\d+)?$/)) {
-      return Number(
-        dollars.match(/\d+(,\d{3})*(\.\d+)?$/)[0]
-        .replace(/,/g, "")
-      );
-    }
-    if (dollars.match(/^\$\d+(,\d{3})*(\.\d+)?\sMillion$/)) {
-      return Number(
-        dollars.match(/\d+(,\d{3})*(\.\d+)?/)[0].replace(/,/g, "")
-        ) * 1000000;
-    }
-    return undefined;
-  }
-  
-  return {
-    getSimpleDate: getSimpleDate,
-    dollarsToNum: dollarsToNum
-  };
-  
-}());
+var DEBUG = false;
 
 //**************************** Process Game Rules ******************************
 
@@ -399,137 +348,6 @@ function updateKitty(wins, gamesObj) {
 
 //******************************************************************************
 
-/**
-* @param {object} wins - [[date.getTime(),gameName,winnings,#of plays],...]
-* @param {object} nextDrawingsObj - {name:[{date,numArr,jackpot,ball,bonus,
-*                                           nextDate,estJackpot},...],...
-*                                    }
-* @param {object} gamesObj - {name: {threshold, price, rules},...}
-*/
-function sendMail(wins, newDrawingsObj, gamesObj) {
-  "use strict";
-  //
-  // check drawings:
-  // if current jackpot < threshold AND next jackpot >= threshold add advisory
-  // if current jackpot >= threshold AND next jackpot < threshold add advisory
-  //
-  // TODO: if active--new--result (threshold met, dates of play in range, and 
-  //       new) then: email results.
-  //
-  // TODO: if game has a threshold and current jackpot is below threshold and
-  //       next jackpot is above threshold, send advisory email.
-  //
-  // TODO: if jackpot is one for active game send advisory email.
-  //
-  // TODO: add kitty balance
-  //
-  var recipient = "kevin.griffin@lowerfallsweb.com";
-  var subject = "testing sunk cost";
-  var body;
-  var bcc = "kgriffin@meditech,coemgen@hotmail.com"; // get from bcc sheet
-  var cc = "";
-  var htmlBody;
-  var options;
-  // check for newly active game(s)
-  var alertArr = Object.keys(newDrawingsObj)
-  .map(
-    // object key is gameName
-    function checkActive(gameName) {
-      
-      var currDraw = newDrawingsObj[gameName].slice(-1)[0];
-      // current jpt < threshold && est jpt >= threshold
-      var newlyActive;
-      var jackpot;
-      var estJackpot;
-      var threshold;
-      var newlyInactive;
-      
-      if (currDraw === null
-          || currDraw === undefined
-          || currDraw === "") {
-        return "";
-      }
-      if (gamesObj[gameName].threshold === null
-          || gamesObj[gameName].threshold === undefined
-          || gamesObj[gameName].threshold === "") {
-        return "";
-      }
-      if (currDraw.jackpot === null
-          || currDraw.jackpot === undefined
-          || currDraw.jackpot === "") {
-        return "";
-      }
-      if (currDraw.estJackpot === null
-          || currDraw.estJackpot === undefined
-          || currDraw.estJackpot === "") {
-        return "";
-      }
-      
-      jackpot = utils.dollarsToNum(currDraw.jackpot);
-      estJackpot = utils.dollarsToNum(currDraw.estJackpot);
-      threshold = utils.dollarsToNum(gamesObj[gameName].threshold);
-      
-      newlyActive = jackpot < threshold && threshold <= estJackpot;
-      if (newlyActive === true) {
-        return gameName + " is now active. The estimated jackpot for "
-        + currDraw.nextDate + " is " + currDraw.estJackpot + ".";
-      }
-      
-      newlyInactive = jackpot >= threshold && threshold > estJackpot;
-      if (newlyInactive === true) {
-        return "The current " + gameName + " run has ended.";
-      }
-      
-      return "";
-    })
-  .filter(
-    function validText(str) {
-      return str.length > 0;
-    });
-  
-  body = wins.reduce(
-    function (str, win) {
-      var date = new Date(win[0]);
-      return str + date.toDateString() + "\t" +
-        win[1] + "\t$" + win[2] + "\n";
-    }, "Recent results (Date, Game, Winnngs):\n");
-  alertArr.forEach(
-    function (alertStr) {
-        body += alertStr + "\n";
-    });
-  
-  htmlBody = wins.reduce(
-    function (str, win) {
-      var date = new Date(win[0]);
-      return str + "<p>" + date.toDateString() + "&nbsp;" +
-        win[1] + "&nbsp;winnings&nbsp;&#36;" + win[2] + "</p>";
-    }, "<h4>Recent results (Date, Game, Winnings):</h4>");
-  alertArr.forEach(
-    function (alertStr) {
-      htmlBody += "<p>" + alertStr + "</p>";
-    });
-  
-  options = {
-    bcc: bcc,
-    cc: cc,
-//    htmlBody: htmlBody,
-    name: "Sunk Cost",
-    noReply: true
-  };
-  
-  if (wins.length === 0) {
-    return;
-  }
-  if (DEBUG === true) {
-    Logger.log("%s %s %s %s\n", recipient, subject, body, options);
-//    debugger;
-    return;
-  }
-  MailApp.sendEmail(recipient, subject, body, options);
-}
-
-//******************************************************************************
-
 /** Sunk Cost Kitty - calculates, stores, and sends results. */
 function main() {
   "use strict";
@@ -559,7 +377,7 @@ function main() {
   updateKitty(wins, gamesObj);
   
   // 3.2 send email for results and newly active games
-  sendMail(wins, newDrawingsObj, gamesObj);
+  mail.send(wins, newDrawingsObj, gamesObj);
   
 }
 

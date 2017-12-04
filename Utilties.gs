@@ -1,3 +1,68 @@
+/*jslint
+    browser, devel, maxlen: 80, white
+*/
+/*global
+    Logger, MailApp, PropertiesService, SpreadsheetApp
+*/
+
+//********************************* Utilities **********************************
+
+var utils = (function () {
+  "use strict";
+  
+  function dollarsToNum(dollars) {
+    if (typeof dollars === "number") {
+      return dollars;
+    }
+    if (dollars.match(/^\$\d+(,\d{3})*(\.\d+)?$/)) {
+      return Number(
+        dollars.match(/\d+(,\d{3})*(\.\d+)?$/)[0]
+        .replace(/,/g, "")
+      );
+    }
+    if (dollars.match(/^\$\d+(,\d{3})*(\.\d+)?\sMillion$/)) {
+      return Number(
+        dollars.match(/\d+(,\d{3})*(\.\d+)?/)[0].replace(/,/g, "")
+        ) * 1000000;
+    }
+    return undefined;
+  }
+  
+  /**
+  * @returns {object} today's with hours,minutes,seconds,and ms set to 0.
+  */
+  function getSimpleDate() {
+    var today = new Date();
+    today.setHours(0);
+    today.setMinutes(0);
+    today.setSeconds(0);
+    today.setMilliseconds(0);
+    return today;
+  }
+  
+  function numToUSD(numStr) {
+    if (typeof numStr === "number") {
+      numStr = numStr.toString();
+    }
+    return "$" + numStr.split("").reduceRight(
+      function (total, numStr, index) {
+        if (index > 0 && index % 3 === 0) {
+          numStr = numStr + ",";
+        }
+        return numStr + total;
+      }, "");
+  }
+  
+  return {
+    dollarsToNum: dollarsToNum,
+    getSimpleDate: getSimpleDate,
+    numToUSD: numToUSD
+  };
+  
+}());
+
+//******************************************************************************
+
 function fixDatesUtil() {
   "use strict";
   var kittyBalanceSheet = SpreadsheetApp.getActive()
@@ -22,3 +87,5 @@ function fixDatesUtil() {
       }
     });
 }
+
+//******************************************************************************
