@@ -85,16 +85,22 @@ var mail = (function () {
   */
   function send(arg0, arg1, arg2) {
     var alertArr;
-    var bcc = "kgriffin@meditech,coemgen@hotmail.com"; // get from bcc sheet
+    var bcc;
     var body;
     var cc;  // copies is comma-separated string
     var htmlBody;
     var kittyBalance;
     var options;
-    var recipient = "kevin.griffin@lowerfallsweb.com";
+    var recipient = Session.getActiveUser().getEmail();
     var scriptProperties = PropertiesService.getScriptProperties()
     .getProperties();
     var subject = scriptProperties.projectName;
+
+    bcc = SpreadsheetApp.getActiveSpreadsheet()
+    .getSheetByName("bcc")
+    .getDataRange()
+    .getValues()
+    .toString()
 
     wins = arg0;
     newDrawingsObj = arg1;
