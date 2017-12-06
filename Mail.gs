@@ -6,9 +6,6 @@ DEBUG, Logger, MailApp, PropertiesService, SpreadsheetApp, utils
 */
 
 //******************************************************************************
-//
-// TODO: add kitty balance
-//
 
 var mail = (function () {
   "use strict";
@@ -88,6 +85,7 @@ var mail = (function () {
     var bcc;
     var body;
     var cc;  // copies is comma-separated string
+    var curDate = new Date();
     var htmlBody;
     var kittyBalance;
     var options;
@@ -132,7 +130,7 @@ var mail = (function () {
         htmlBody += "<p>" + alertStr + "</p>";
       });
     
-    // TODO: add kitty balance
+    // add kitty balance
     kittyBalance = utils.numToUSD(SpreadsheetApp.getActive()
     .getSheetByName("Balance Sheet")
     .getRange("F1")
@@ -140,10 +138,12 @@ var mail = (function () {
     body += "Kitty Balance: " + kittyBalance + "\n";
     htmlBody += "<p>Kitty Balance: " + kittyBalance + "</p>";
     
-    // TODO: add webpage email
+    // webpage email
     body += scriptProperties.lotteryWebUrl + "\n";
     htmlBody += "<a href=\"" + scriptProperties.lotteryWebUrl + "\">" 
     + scriptProperties.projectName + "</a>"; 
+    // work-around for gmail "show trimmed content" issue
+    htmlBody += "<p>" + curDate.toUTCString() + "</p>";
     
     options = {
       bcc: bcc,
