@@ -1,8 +1,8 @@
 /*jslint
-    browser, devel, maxlen: 80, white
+browser, devel, maxlen: 80, white
 */
 /*global
-    Logger, MailApp, PropertiesService, SpreadsheetApp
+Logger, mail, MailApp, PropertiesService, SpreadsheetApp, utils
 */
 // TODO: Add names for "inline" functions used as callbacks for map, etc.
 // TODO: fix jsdoc comments
@@ -107,7 +107,8 @@ function getPlays() {
           ball: playArr[6],
           bonus: playArr[7],
           start: start,
-          end: end
+          end: end,
+          ticketCost: utils.dollarsToNum(playArr[10])
         };
       });
     obj[sheet.getSheetName()] = playObjsArr;
@@ -243,7 +244,7 @@ function getActiveDraws(newDrawingsObj, playsObj, gamesObj) {
 *                                          nextDate,estJackpot},...],...}
 * @param {object} gamesObj - {name: {threshold, price, rules},...}
 * @param {object} playsObj - {name: [{numArr,ball,bonus,start,end},...]}
-* @returns {object} - [[date.getTime(),gameName,winnings],...]
+* @returns {object} - [[date.getTime(),gameName,winnings,ticketCost],...]
 */
 function getWins(activeDrawsObj, gamesObj, playsObj) {
   "use strict";
@@ -256,6 +257,7 @@ function getWins(activeDrawsObj, gamesObj, playsObj) {
         
         function (drawObj) {
           var noOfPlays = 0; // number of active plays for one drawing
+          var ticketCost = 0; // lump sum of a multi-play ticket
           var winnings = playsObj[gameName]
           .filter(
             
@@ -305,11 +307,24 @@ function getWins(activeDrawsObj, gamesObj, playsObj) {
               } else {
                 wins = utils.dollarsToNum(wins);
               }
+              
+              // determine if it's a pay by draw or a multi-draw ticket
+              if (activePlayObj.ticketCost !== null
+                  && activePlayObj.ticketCost !== undefined
+                  && activePlayObj.ticketCost !== ""
+                  && activePlayObj.ticketCost > 0) {
+                if (activePlayObj.start.getTime() === drawObj.date.getTime()) {
+                  ticketCost = activePlayObj.ticketCost;
+                } else {
+                  ticketCost = 0;
+                }
+              }
+              
               // total
               return total + (wins * bonus);
             }, 0);
           
-          return [drawObj.date.getTime(), gameName, winnings, noOfPlays];
+          return [drawObj.date.getTime(), gameName, winnings, noOfPlays, ticketCost];
         });
       
       // return array [[date.getTime(),gameName,winnings],...]
@@ -319,27 +334,47 @@ function getWins(activeDrawsObj, gamesObj, playsObj) {
 
 //******************************************************************************
 
+/**
+* @param {object} wins - [[date.getTime(),gameName,winnings,#of plays],...]
+* @param {object} gamesObj - {name: {threshold, price, rules},...}
+*/
 function updateKitty(wins, gamesObj) {
   "use strict";
   var kittySsObj = SpreadsheetApp.getActive();
   wins.forEach(
     function (win) {
-      var plays = win[3];
-      var date = new Date(win[0]);
-      var month = date.getMonth() + 1;
-      var dateStr = month.toString() +
+      var date;
+      var dateStr;
+      var gameName;
+      var month;
+      var numOfPlays;
+      var rowContents;
+      var ticketCost;
+      var winnings;
+      
+      date = new Date(win[0]);
+      gameName = win[1];
+      winnings = win[2];
+      numOfPlays = win[3];
+      ticketCost = win[4];
+      month = date.getMonth() + 1;
+      dateStr = month.toString() +
         "/" +
           date.getDate() +
             "/" + date.getFullYear();
-      var rowContents = [
+      if (ticketCost === 0) {
+        ticketCost = utils.dollarsToNum(gamesObj[gameName].price) * numOfPlays;
+      }
+      rowContents = [
         dateStr,
-        win[1],
-        utils.dollarsToNum(win[2]),
-        utils.dollarsToNum(gamesObj[win[1]].price) * plays
+        gameName,
+        utils.dollarsToNum(winnings),
+        ticketCost
       ];
+      
       if (DEBUG === true) {
         Logger.log(rowContents);
-//        debugger;
+        //        debugger;
         return;
       }
       kittySsObj.getSheetByName("Balance Sheet").appendRow(rowContents);
@@ -364,7 +399,7 @@ function main() {
   
   // 3. check for wins, send emails (alerts, wins)  
   var gamesObj = getGames(); // {name: {threshold, price, rules},...}
-  var playsObj = getPlays(); // {name: [{numArr,ball,bonus,start,end},...]}
+  var playsObj = getPlays(); // {name: [{numArr,ball,bonus,start,end,ticketCost},...]}
   
   // 3.1 update kitty
   
@@ -372,7 +407,7 @@ function main() {
   //                 estJackpot},...],...}
   var activeDrawsObj = getActiveDraws(newDrawingsObj, playsObj, gamesObj);
   
-  // Output: [[date.getTime(),gameName,winnings,#of plays],...]
+  // Output: [[date.getTime(),gameName,winnings,#of plays,ticketCost],...]
   var wins = getWins(activeDrawsObj, gamesObj, playsObj);
   updateKitty(wins, gamesObj);
   
