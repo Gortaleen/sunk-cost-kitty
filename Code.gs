@@ -91,6 +91,7 @@ function getPlays() {
     var playsArr = sheet.getDataRange().getDisplayValues();
     var playObjsArr = playsArr.slice(1).map(
       function putPlaysInObj(playArr) {
+        var ticketCost = playArr[10] || "";
         start = (playArr[8]) ? new Date(playArr[8]) : today;
         end = (playArr[9]) ? new Date(playArr[9]) : today;
         return {
@@ -108,7 +109,7 @@ function getPlays() {
           bonus: playArr[7],
           start: start,
           end: end,
-          ticketCost: utils.dollarsToNum(playArr[10])
+          ticketCost: utils.dollarsToNum(ticketCost)
         };
       });
     obj[sheet.getSheetName()] = playObjsArr;
