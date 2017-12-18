@@ -315,7 +315,7 @@ function getWins(activeDrawsObj, gamesObj, playsObj) {
                   && activePlayObj.ticketCost !== ""
                   && activePlayObj.ticketCost > 0) {
                 if (activePlayObj.start.getTime() === drawObj.date.getTime()) {
-                  ticketCost = activePlayObj.ticketCost;
+                  ticketCost = activePlayObj.ticketCost + ticketCost;
                 } else {
                   ticketCost = 0;
                 }
@@ -324,7 +324,6 @@ function getWins(activeDrawsObj, gamesObj, playsObj) {
               // total
               return total + (wins * bonus);
             }, 0);
-          
           return [drawObj.date.getTime(), gameName, winnings, noOfPlays, ticketCost];
         });
       
