@@ -2,7 +2,7 @@
 browser, devel, maxlen: 80, white
 */
 /*global
-DEBUG, Logger, MailApp, PropertiesService, SpreadsheetApp, utils
+DEBUG, Logger, MailApp, PropertiesService, Session, SpreadsheetApp, utils
 */
 
 //******************************************************************************
@@ -10,9 +10,9 @@ DEBUG, Logger, MailApp, PropertiesService, SpreadsheetApp, utils
 var mail = (function () {
   "use strict";
   
-  var wins;
-  var newDrawingsObj;
-  var gamesObj;
+  var wins = [];
+  var newDrawingsObj = {};
+  var gamesObj = {};
   
   function getAlerts() {
     // Return alert texts for newly (in)active games.
@@ -68,7 +68,7 @@ var mail = (function () {
       })
     .filter(
       function validText(str) {
-        Logger.log("%s %s", str, str.length);
+        Logger.log("getAlerts: %s %s", str, str.length);
         return str.length > 0;
       });
   }
@@ -81,14 +81,14 @@ var mail = (function () {
   * @param {object} gamesObj - {name: {threshold, price, rules},...}
   */
   function send(arg0, arg1, arg2) {
-    var alertArr;
-    var bcc;
-    var body;
-    var cc;  // copies is comma-separated string
+    var alertArr = [];
+    var bcc = "";
+    var body = "";
+    var cc = "";  // copies is comma-separated string
     var curDate = new Date();
-    var htmlBody;
-    var kittyBalance;
-    var options;
+    var htmlBody = "";
+    var kittyBalance = 0;
+    var options = {};
     var recipient = Session.getActiveUser().getEmail();
     var scriptProperties = PropertiesService.getScriptProperties()
     .getProperties();
@@ -98,7 +98,7 @@ var mail = (function () {
     .getSheetByName("bcc")
     .getDataRange()
     .getValues()
-    .toString()
+    .toString();
 
     wins = arg0;
     newDrawingsObj = arg1;

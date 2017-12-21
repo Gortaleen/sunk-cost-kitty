@@ -91,7 +91,15 @@ function getPlays() {
     var playsArr = sheet.getDataRange().getDisplayValues();
     var playObjsArr = playsArr.slice(1).map(
       function putPlaysInObj(playArr) {
-        var ticketCost = playArr[10] || "";
+        var ticketCost = "";
+        if (playArr[10] !== null
+            && playArr[10] !== undefined
+            && playArr[10] !== ""
+            && playArr[10] !== "0") {
+          ticketCost = playArr[10];
+        } else {
+          ticketCost = undefined;
+        }
         start = (playArr[8]) ? new Date(playArr[8]) : today;
         end = (playArr[9]) ? new Date(playArr[9]) : today;
         return {
@@ -324,7 +332,12 @@ function getWins(activeDrawsObj, gamesObj, playsObj) {
               // total
               return total + (wins * bonus);
             }, 0);
-          return [drawObj.date.getTime(), gameName, winnings, noOfPlays, ticketCost];
+          return [
+            drawObj.date.getTime(), 
+            gameName, 
+            winnings, 
+            noOfPlays, 
+            ticketCost];
         });
       
       // return array [[date.getTime(),gameName,winnings],...]
@@ -343,14 +356,14 @@ function updateKitty(wins, gamesObj) {
   var kittySsObj = SpreadsheetApp.getActive();
   wins.forEach(
     function (win) {
-      var date;
-      var dateStr;
-      var gameName;
-      var month;
-      var numOfPlays;
-      var rowContents;
-      var ticketCost;
-      var winnings;
+      var date = {};
+      var dateStr = "";
+      var gameName = "";
+      var month = 0;
+      var numOfPlays = 0;
+      var rowContents = [];
+      var ticketCost = 0;
+      var winnings = 0;
       
       date = new Date(win[0]);
       gameName = win[1];
@@ -362,7 +375,7 @@ function updateKitty(wins, gamesObj) {
         "/" +
           date.getDate() +
             "/" + date.getFullYear();
-      if (ticketCost === 0) {
+      if (ticketCost === undefined) {
         ticketCost = utils.dollarsToNum(gamesObj[gameName].price) * numOfPlays;
       }
       rowContents = [
@@ -373,7 +386,7 @@ function updateKitty(wins, gamesObj) {
       ];
       
       if (DEBUG === true) {
-        Logger.log(rowContents);
+        Logger.log("updateKitty: %s", rowContents);
         //        debugger;
         return;
       }
@@ -399,7 +412,8 @@ function main() {
   
   // 3. check for wins, send emails (alerts, wins)  
   var gamesObj = getGames(); // {name: {threshold, price, rules},...}
-  var playsObj = getPlays(); // {name: [{numArr,ball,bonus,start,end,ticketCost},...]}
+  var playsObj = getPlays(); // {name: [{numArr,ball,bonus,start,
+  //          end,ticketCost},...]}
   
   // 3.1 update kitty
   
