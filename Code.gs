@@ -98,7 +98,7 @@ function getPlays() {
             && playArr[10] !== "0") {
           ticketCost = playArr[10];
         } else {
-          ticketCost = undefined;
+          ticketCost = "";
         }
         start = (playArr[8]) ? new Date(playArr[8]) : today;
         end = (playArr[9]) ? new Date(playArr[9]) : today;
