@@ -327,6 +327,8 @@ function getWins(activeDrawsObj, gamesObj, playsObj) {
                 } else {
                   ticketCost = 0;
                 }
+              } else {
+                ticketCost = undefined;
               }
               
               // total
