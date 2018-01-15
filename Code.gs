@@ -232,12 +232,16 @@ function getActiveDraws(newDrawingsObj, playsObj, gamesObj) {
       .filter(
         // only return drawings whose jackpot meets minimum threshold
         function (drawObj) {
+          var jackpot = 0;
+          var threshold = 0;
           if (gamesObj[keyName].threshold === "" ||
               gamesObj[keyName].threshold === null ||
               gamesObj[keyName].threshold === undefined) {
             return true;
           }
-          return drawObj.jackpot >= gamesObj[keyName].threshold;
+          jackpot = utils.dollarsToNum(drawObj.jackpot);
+          threshold = utils.dollarsToNum(gamesObj[keyName].threshold);
+          return jackpot >= threshold;
         });
       if (activeDrawsArr.length > 0) {
         obj[keyName] = activeDrawsArr;

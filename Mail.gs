@@ -85,25 +85,31 @@ var mail = (function () {
     var bcc = "";
     var body = "";
     var cc = "";  // copies is comma-separated string
-    var curDate = new Date();
+    var curDate = {};
     var htmlBody = "";
     var kittyBalance = 0;
     var options = {};
-    var recipient = Session.getActiveUser().getEmail();
-    var scriptProperties = PropertiesService.getScriptProperties()
-    .getProperties();
-    var subject = scriptProperties.projectName;
+    var recipient = "";
+    var scriptProperties = {};
+    var subject = "";
 
+    wins = arg0;
+    if (wins.length === 0) {
+      return;
+    }
+    newDrawingsObj = arg1;
+    gamesObj = arg2;
+    curDate = new Date();
+    recipient = Session.getActiveUser().getEmail();
+    scriptProperties = PropertiesService.getScriptProperties()
+    .getProperties();
+    subject = scriptProperties.projectName;
     bcc = SpreadsheetApp.getActiveSpreadsheet()
     .getSheetByName("bcc")
     .getDataRange()
     .getValues()
     .toString();
 
-    wins = arg0;
-    newDrawingsObj = arg1;
-    gamesObj = arg2;
-    
     alertArr = getAlerts();
     
     body = wins.reduce(
@@ -153,9 +159,6 @@ var mail = (function () {
       noReply: true
     };
     
-    if (wins.length === 0) {
-      return;
-    }
     if (DEBUG === true) {
       Logger.log("%s %s %s %s\n", recipient, subject, body, options);
       //    debugger;
