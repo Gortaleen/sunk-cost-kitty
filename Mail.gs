@@ -25,7 +25,7 @@ var mail = (function () {
         var newlyActive;
         var newlyInactive;
         var threshold;
-        
+
         if (currDraw === null
             || currDraw === undefined
             || currDraw === "") {
@@ -55,7 +55,7 @@ var mail = (function () {
         newlyActive = jackpot < threshold && threshold <= estJackpot;
         if (newlyActive === true) {
           return gameName + " is now active. The estimated jackpot for "
-          + currDraw.nextDate + " is " + currDraw.estJackpot + ".";
+          + currDraw.nextDate.toDateString() + " is " + currDraw.estJackpot + ".";
         }
         
         // check for newly inactive game
@@ -94,11 +94,14 @@ var mail = (function () {
     var subject = "";
 
     wins = arg0;
-    if (wins.length === 0) {
-      return;
-    }
     newDrawingsObj = arg1;
     gamesObj = arg2;
+    // getAlerts uses newDrawingsObj and gamesObj
+    alertArr = getAlerts();
+    if (wins.length === 0 && alertArr.length === 0) {
+      return;
+    }
+    
     curDate = new Date();
     recipient = Session.getActiveUser().getEmail();
     scriptProperties = PropertiesService.getScriptProperties()
@@ -110,8 +113,6 @@ var mail = (function () {
     .getValues()
     .toString();
 
-    alertArr = getAlerts();
-    
     body = wins.reduce(
       function (str, win) {
         var date = new Date(win[0]);
@@ -149,7 +150,7 @@ var mail = (function () {
     htmlBody += "<a href=\"" + scriptProperties.lotteryWebUrl + "\">" 
     + scriptProperties.projectName + "</a>"; 
     // work-around for gmail "show trimmed content" issue
-    htmlBody += "<p>" + curDate.toUTCString() + "</p>";
+    htmlBody += "<p>" + curDate.getTime() + "</p>";
     
     options = {
       bcc: bcc,
