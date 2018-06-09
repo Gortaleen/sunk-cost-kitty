@@ -157,7 +157,7 @@ var mail = (function () {
       cc: cc,
       htmlBody: htmlBody,
       name: scriptProperties.projectName,
-      noReply: true
+      noReply: false
     };
     
     if (DEBUG === true) {
