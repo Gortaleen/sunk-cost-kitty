@@ -25,7 +25,7 @@ var mail = (function () {
         var newlyActive;
         var newlyInactive;
         var threshold;
-
+        
         if (currDraw === null
             || currDraw === undefined
             || currDraw === "") {
@@ -81,6 +81,7 @@ var mail = (function () {
   * @param {object} gamesObj - {name: {threshold, price, rules},...}
   */
   function send(arg0, arg1, arg2) {
+    var ss = SpreadsheetApp.getActiveSpreadsheet();
     var alertArr = [];
     var bcc = "";
     var body = "";
@@ -92,7 +93,8 @@ var mail = (function () {
     var recipient = "";
     var scriptProperties = {};
     var subject = "";
-
+    var emojis = [];
+    
     wins = arg0;
     newDrawingsObj = arg1;
     gamesObj = arg2;
@@ -107,12 +109,14 @@ var mail = (function () {
     scriptProperties = PropertiesService.getScriptProperties()
     .getProperties();
     subject = scriptProperties.projectName;
-    bcc = SpreadsheetApp.getActiveSpreadsheet()
-    .getSheetByName("bcc")
+    bcc = ss.getSheetByName("bcc")
     .getDataRange()
     .getValues()
     .toString();
-
+    emojis = ss.getSheetByName("Google Emoji Codes")
+    .getDataRange()
+    .getValues();
+    
     body = wins.reduce(
       function (str, win) {
         var date = new Date(win[0]);
@@ -139,18 +143,24 @@ var mail = (function () {
     
     // add kitty balance
     kittyBalance = utils.numToUSD(SpreadsheetApp.getActive()
-    .getSheetByName("Balance Sheet")
-    .getRange("F1")
-    .getValue());
+                                  .getSheetByName("Balance Sheet")
+                                  .getRange("F1")
+                                  .getValue());
     body += "Kitty Balance: " + kittyBalance + "\n";
     htmlBody += "<p>Kitty Balance: " + kittyBalance + "</p>";
     
     // webpage email
     body += scriptProperties.lotteryWebUrl + "\n";
     htmlBody += "<a href=\"" + scriptProperties.lotteryWebUrl + "\">" 
-    + scriptProperties.projectName + "</a>"; 
+    + "View " + scriptProperties.projectName + " details</a>"; 
     // work-around for gmail "show trimmed content" issue
-    htmlBody += "<p>" + curDate.getTime() + "</p>";
+    htmlBody += "<p>" + curDate + "</p>";
+    // pseudo rebus
+    htmlBody += emojis[Math.floor(Math.random() * emojis.length)][1];
+    htmlBody += emojis[Math.floor(Math.random() * emojis.length)][1];
+    htmlBody += emojis[Math.floor(Math.random() * emojis.length)][1];
+    htmlBody += emojis[Math.floor(Math.random() * emojis.length)][1];
+    htmlBody += emojis[Math.floor(Math.random() * emojis.length)][1];
     
     options = {
       bcc: bcc,
