@@ -25,6 +25,11 @@ var utils = (function () {
         dollars.match(/\d+(,\d{3})*(\.\d+)?/)[0].replace(/,/g, "")
         ) * 1000000;
     }
+    if (dollars.match(/^\$\d+(,\d{3})*(\.\d+)?\sBillion$/)) {
+      return Number(
+        dollars.match(/\d+(,\d{3})*(\.\d+)?/)[0].replace(/,/g, "")
+        ) * 1000000000;
+    }
     return undefined;
   }
   
