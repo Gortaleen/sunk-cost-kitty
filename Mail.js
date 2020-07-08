@@ -21,11 +21,12 @@ var mail = (function () {
       function checkActive(gameName) {
         var currDraw = newDrawingsObj[gameName].slice(-1)[0];
         var estJackpot;
+        var estJackpotStr;
         var jackpot;
         var newlyActive;
         var newlyInactive;
         var threshold;
-        
+
         if (currDraw === null
             || currDraw === undefined
             || currDraw === "") {
@@ -55,7 +56,10 @@ var mail = (function () {
         newlyActive = jackpot < threshold && threshold <= estJackpot;
         if (newlyActive === true) {
           return gameName + " is now active. The estimated jackpot for "
-          + currDraw.nextDate.toDateString() + " is " + currDraw.estJackpot + ".";
+          + currDraw.nextDate.toDateString() 
+          + " is " 
+          + utils.numToUSD(estJackpot)
+          + ".";
         }
         
         // check for newly inactive game

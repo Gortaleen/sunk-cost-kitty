@@ -14,6 +14,9 @@ var utils = (function () {
     if (typeof dollars === "number") {
       return dollars;
     }
+    if (dollars.match(/^\d+$/)) {
+      return Number(dollars);
+    }
     if (dollars.match(/^\$\d+(,\d{3})*(\.\d+)?$/)) {
       return Number(
         dollars.match(/\d+(,\d{3})*(\.\d+)?$/)[0]
@@ -46,16 +49,13 @@ var utils = (function () {
   }
   
   function numToUSD(numStr) {
-    if (typeof numStr === "number") {
-      numStr = numStr.toString();
-    }
-    return "$" + numStr.split("").reduceRight(
-      function (total, numStr, index) {
-        if (index > 0 && index % 3 === 0) {
-          numStr = numStr + ",";
-        }
-        return numStr + total;
-      }, "");
+    return "$" + Number(numStr).toLocaleString(
+      "en-US", 
+      [
+        {"style":"currency"},
+        {"currency":"USD"}
+      ]
+    );
   }
   
   return {
