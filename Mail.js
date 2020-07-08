@@ -1,5 +1,5 @@
 /*jslint
-browser, devel, maxlen: 80, white
+browser:true, white:true
 */
 /*global
 DEBUG, Logger, MailApp, PropertiesService, Session, SpreadsheetApp, utils
@@ -56,8 +56,8 @@ var mail = (function () {
         newlyActive = jackpot < threshold && threshold <= estJackpot;
         if (newlyActive === true) {
           return gameName + " is now active. The estimated jackpot for "
-          + currDraw.nextDate.toDateString() 
-          + " is " 
+          + currDraw.nextDate.toDateString()
+          + " is "
           + utils.numToUSD(estJackpot)
           + ".";
         }
@@ -135,7 +135,7 @@ var mail = (function () {
     htmlBody = wins.reduce(
       function (str, win) {
         var date = new Date(win[0]);
-        return str + "<p>" + date.toDateString() + "&nbsp;" +  
+        return str + "<p>" + date.toDateString() + "&nbsp;" +
           // TODO: add symbols
           // e.g., frowny face &#9785; dollar sign &#36;
           win[1] + "&nbsp;winnings&nbsp;&#36;" + win[2] + "</p>";
@@ -155,8 +155,8 @@ var mail = (function () {
     
     // webpage email
     body += scriptProperties.lotteryWebUrl + "\n";
-    htmlBody += "<a href=\"" + scriptProperties.lotteryWebUrl + "\">" 
-    + "View " + scriptProperties.projectName + " details</a>"; 
+    htmlBody += "<a href=\"" + scriptProperties.lotteryWebUrl + "\">"
+    + "View " + scriptProperties.projectName + " details</a>";
     // work-around for gmail "show trimmed content" issue
     htmlBody += "<p>" + curDate + "</p>";
     // pseudo rebus
