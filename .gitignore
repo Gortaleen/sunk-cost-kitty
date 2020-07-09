@@ -1,13 +1,10 @@
-<<<<<<< .mine
 #
 .clasp.json
 #
 *-caret-project
 #
 *.code-workspace
-||||||| .r0
-=======
 #
-.clasp.json
+*.txt
 #
-*-caret-project>>>>>>> .r28
+out/
