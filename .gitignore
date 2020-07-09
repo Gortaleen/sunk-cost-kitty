@@ -1,4 +1,13 @@
+<<<<<<< .mine
 #
 .clasp.json
 #
 *-caret-project
+#
+*.code-workspace
+||||||| .r0
+=======
+#
+.clasp.json
+#
+*-caret-project>>>>>>> .r28
