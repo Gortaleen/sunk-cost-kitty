@@ -49,7 +49,7 @@ var utils = (function () {
   }
   
   function numToUSD(numStr) {
-    return "$" + Number(numStr).toLocaleString(
+    return Number(numStr).toLocaleString(
       "en-US", {
         "style": "currency",
         "currency": "USD"
