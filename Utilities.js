@@ -50,11 +50,11 @@ var utils = (function () {
   
   function numToUSD(numStr) {
     return "$" + Number(numStr).toLocaleString(
-      "en-US", 
-      [
-        {"style":"currency"},
-        {"currency":"USD"}
-      ]
+      "en-US",
+        {
+          "style":"currency",
+          "currency":"USD"
+        }
     );
   }
   
@@ -84,8 +84,8 @@ function fixDatesUtil() {
       var dateNumStr = "";
       if (typeof kittyRow[0] === "number") {
         dateNumStr = kittyRow[0].toString();
-        date = new Date(dateNumStr.slice(0, 4), 
-                        dateNumStr.slice(4, 6), 
+        date = new Date(dateNumStr.slice(0, 4),
+                        dateNumStr.slice(4, 6),
                         dateNumStr.slice(6, 8));
         kittyBalanceSheet.getRange(row, column, numRows, numColumns)
         .setValue(date);
