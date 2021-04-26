@@ -124,8 +124,9 @@ var mail = (function () {
     body = wins.reduce(
       function (str, win) {
         var date = new Date(win[0]);
-        return str + date.toDateString() + "\t" +
-          win[1] + "\t$" + win[2] + "\n";
+        return str + date.toDateString() + "\t"
+          + win[1] + "\t"
+          + utils.numToUSD(win[2]) + "\n";
       }, "Recent results (Date, Game, Winnngs):\n");
     alertArr.forEach(
       function (alertStr) {
@@ -138,7 +139,7 @@ var mail = (function () {
         return str + "<p>" + date.toDateString() + "&nbsp;" +
           // TODO: add symbols
           // e.g., frowny face &#9785; dollar sign &#36;
-          win[1] + "&nbsp;winnings&nbsp;&#36;" + win[2] + "</p>";
+          win[1] + "&nbsp;winnings&nbsp;" + utils.numToUSD(win[2]) + "</p>";
       }, "<h4>Recent results (Date, Game, Winnings):</h4>");
     alertArr.forEach(
       function (alertStr) {

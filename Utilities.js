@@ -49,12 +49,22 @@ var utils = (function () {
   }
   
   function numToUSD(numStr) {
-    return Number(numStr).toLocaleString(
-      "en-US", {
-        "style": "currency",
-        "currency": "USD"
+    const units = { B: "Billion", K: "Thousand", M: "Million" };
+    const matchResult = Number(numStr).toLocaleString(
+      "en-US",
+      {
+        currency: "USD",
+        style: "currency",
+        notation: "compact",
+        minimumSignificantDigits: 2
       }
+    ).match(/^(\$\d+(\.\d+)?)([BKM])?$/);
+    const formattedResult = (
+      (matchResult[3])
+        ? matchResult[1] + " " + units[matchResult[3]]
+        : matchResult[1]
     );
+    return formattedResult;
   }
   
   return {
