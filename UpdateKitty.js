@@ -5,6 +5,7 @@
  * Update Kitty spreadsheet and send emails
  * @namespace
  */
+// eslint-disable-next-line no-unused-vars
 const UpdateKitty = (function () {
   "use strict";
 

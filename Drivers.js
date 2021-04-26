@@ -1,5 +1,5 @@
 /*jslint browser:true, white:true*/
-/*global */
+/*global UpdateKitty */
 
 /*
 @file Drivers
@@ -12,6 +12,7 @@ drawingSpreadsheetId
 kittySpreadsheetId
 */
 
+// eslint-disable-next-line no-unused-vars
 function updateKitty() {
   UpdateKitty.main();
 }

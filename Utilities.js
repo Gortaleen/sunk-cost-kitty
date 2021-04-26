@@ -1,12 +1,9 @@
-/*jslint
-    browser, devel, maxlen: 80, white
-*/
-/*global
-    Logger, MailApp, PropertiesService, SpreadsheetApp
-*/
+/*jslint browser, devel, maxlen: 80, white */
+/*global SpreadsheetApp */
 
 //********************************* Utilities **********************************
 
+// eslint-disable-next-line no-unused-vars
 var utils = (function () {
   "use strict";
 
@@ -63,9 +60,9 @@ var utils = (function () {
       }
     ).match(/^(\$\d+(\.\d+)?)([BKM])?$/);
     const formattedResult = (
-      (matchResult[3]) ?
-      matchResult[1] + " " + units[matchResult[3]] :
-      matchResult[1]
+      (matchResult[3])
+      ? matchResult[1] + " " + units[matchResult[3]]
+      : matchResult[1]
     );
     return formattedResult;
   }
@@ -80,6 +77,7 @@ var utils = (function () {
 
 //******************************************************************************
 
+// eslint-disable-next-line no-unused-vars
 function fixDatesUtil() {
   "use strict";
   var kittyBalanceSheet = SpreadsheetApp.getActive()

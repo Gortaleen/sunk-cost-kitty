@@ -1,0 +1,50 @@
+{
+  "env": {
+    "browser": true,
+    "es6": true
+  },
+  "extends": "eslint:recommended",
+  "parserOptions": {
+    "ecmaVersion": 2018
+  },
+  "rules": {
+    // "linebreak-style": [
+    //   "error",
+    //   "windows"
+    // ],
+    "operator-linebreak": [
+      "error",
+      "before"
+    ],
+    "quotes": [
+      "error",
+      "double",
+      {
+        "allowTemplateLiterals": true
+      }
+    ],
+    "semi": [
+      "error",
+      "always"
+    ],
+    "no-use-before-define": "error",
+    "max-statements": [
+      "warn",
+      20
+    ],
+    "max-len": [
+      "error",
+      {
+        "code": 80,
+        "ignoreUrls": true,
+        "ignoreComments": true
+      }
+    ],
+    "no-unused-vars": [
+      "error", {
+        "varsIgnorePattern": "[iI]gnore"
+      }
+    ],
+    "no-warning-comments": "warn"
+  }
+}
