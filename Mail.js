@@ -110,7 +110,8 @@ var mail = (function () {
     }
 
     curDate = new Date();
-    recipient = Session.getActiveUser().getEmail();
+    // recipient = Session.getActiveUser().getEmail();
+    recipient = "kevin.griffin@gmail.com";
     scriptProperties = PropertiesService.getScriptProperties()
       .getProperties();
     subject = scriptProperties.projectName;
