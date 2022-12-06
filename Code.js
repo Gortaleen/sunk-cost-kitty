@@ -55,7 +55,7 @@ function getGames() {
   var ss = SpreadsheetApp.openById(
     PropertiesService.getScriptProperties()
     .getProperties()
-    .gameRulesSpreadsheetId);
+    .gameRulesSsId);
   return ss.getSheets().reduce(function gameArrToObj(obj, sheetObj) {
     var detailsArr = sheetObj.getDataRange().getDisplayValues();
     obj[detailsArr[1][1]] = {
@@ -82,7 +82,7 @@ function getPlays() {
   return SpreadsheetApp.openById(
       PropertiesService.getScriptProperties()
       .getProperties()
-      .playsSpreadsheetId)
+      .playedNumsSsId)
     .getSheets().reduce(function playArrToObj(obj, sheet) {
       var playsArr = sheet.getDataRange().getDisplayValues();
       var playObjsArr = playsArr.slice(1).map(
@@ -128,10 +128,9 @@ function getPlays() {
  *
  * @returns {object} [[date,game name,debit,credit], ... ]
  */
-function getKittyLastArr() {
+function getKittyLastArr(kittySsObj) {
   "use strict";
-  var kittyBalanceSheet = SpreadsheetApp.getActive()
-    .getSheetByName("Balance Sheet");
+  var kittyBalanceSheet = kittySsObj.getSheetByName("Balance Sheet");
   var kittyBalanceArr = kittyBalanceSheet.getDataRange()
     .getDisplayValues();
   var kittyLastDateStr = kittyBalanceArr.slice(-1)[0][0];
@@ -163,7 +162,7 @@ function getNewDrawings(kittyLastArr) {
       PropertiesService
       .getScriptProperties()
       .getProperties()
-      .drawingSpreadsheetId)
+      .drawnNumsSsId)
     .getSheets().reduce(
       function (resultObj, drawingSheet) {
         var drawGameName = drawingSheet.getSheetName();
@@ -356,9 +355,8 @@ function getWins(activeDrawsObj, gamesObj, playsObj) {
  * @param {object} wins - [[date.getTime(),gameName,winnings,#of plays],...]
  * @param {object} gamesObj - {name: {threshold, price, rules},...}
  */
-function updateKitty(wins, gamesObj) {
+function updateKitty(wins, gamesObj, kittySsObj) {
   "use strict";
-  var kittySsObj = SpreadsheetApp.getActive();
   wins.forEach(
     // eslint-disable-next-line max-statements
     function (win) {
@@ -406,9 +404,13 @@ function updateKitty(wins, gamesObj) {
 // eslint-disable-next-line no-unused-vars
 function main() {
   "use strict";
+  var kittySsObj = SpreadsheetApp.openById(
+    PropertiesService.getScriptProperties()
+    .getProperties()
+    .kittySsId);
 
   // 1. Get last row of kitty data.
-  var kittyLastArr = getKittyLastArr(); // [[dt,name,deb,cred]...]
+  var kittyLastArr = getKittyLastArr(kittySsObj); // [[dt,name,deb,cred]...]
 
   // 2. Check for new results from last kitty update up to the latest draw date.
   //    Input: [[dt,name,deb,cred]...]
@@ -430,10 +432,10 @@ function main() {
 
   // Output: [[date.getTime(),gameName,winnings,#of plays,ticketCost],...]
   var wins = getWins(activeDrawsObj, gamesObj, playsObj);
-  updateKitty(wins, gamesObj);
+  updateKitty(wins, gamesObj, kittySsObj);
 
   // 3.2 send email for results and newly active games
-  mail.send(wins, newDrawingsObj, gamesObj);
+  mail.send(wins, newDrawingsObj, gamesObj, kittySsObj);
 
 }
 

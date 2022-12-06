@@ -86,8 +86,7 @@ var mail = (function () {
    * @param {object} gamesObj - {name: {threshold, price, rules},...}
    */
   // eslint-disable-next-line max-statements
-  function send(arg0, arg1, arg2) {
-    var ss = SpreadsheetApp.getActiveSpreadsheet();
+  function send(arg0, arg1, arg2, kittySsObj) {
     var alertArr = [];
     var bcc = "";
     var body = "";
@@ -115,11 +114,11 @@ var mail = (function () {
     scriptProperties = PropertiesService.getScriptProperties()
       .getProperties();
     subject = scriptProperties.projectName;
-    bcc = ss.getSheetByName("bcc")
+    bcc = kittySsObj.getSheetByName("bcc")
       .getDataRange()
       .getValues()
       .toString();
-    emojis = ss.getSheetByName("Google Emoji Codes")
+    emojis = kittySsObj.getSheetByName("Google Emoji Codes")
       .getDataRange()
       .getValues();
 
@@ -149,8 +148,7 @@ var mail = (function () {
       });
 
     // add kitty balance
-    kittyBalance = utils.numToUSD(SpreadsheetApp.getActive()
-      .getSheetByName("Balance Sheet")
+    kittyBalance = utils.numToUSD(kittySsObj.getSheetByName("Balance Sheet")
       .getRange("F1")
       .getValue());
     body += "Kitty Balance: " + kittyBalance + "\n";

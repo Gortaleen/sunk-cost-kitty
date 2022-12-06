@@ -58,7 +58,7 @@ var utils = (function () {
         notation: "compact",
         minimumSignificantDigits: 2
       }
-    ).match(/^(\$\d+(\.\d+)?)([BKM])?$/);
+    ).match(/^-?(\$\d+(\.\d+)?)([BKM])?$/);
     const formattedResult = (
       (matchResult[3])
       ? matchResult[1] + " " + units[matchResult[3]]
