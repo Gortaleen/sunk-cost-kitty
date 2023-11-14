@@ -6,18 +6,24 @@
 const DEBUG = false;
 
 interface DrawingData {
-  date: Date;
-  numArr: Array<string>;
-  jackpot: string;
-  ball: string;
-  bonus: string;
-  nextDate: Date;
-  estJackpot: string;
+  date?: Date;
+  numArr?: Array<string>;
+  jackpot?: string;
+  ball?: string;
+  bonus?: string;
+  nextDate?: Date;
+  estJackpot?: string;
 }
 interface Game {
   threshold: number;
   price: number;
   rules: Array<string>;
+}
+interface Kitty {
+  date: string;
+  gameName: string;
+  debit: string;
+  credit: string;
 }
 
 const updateKitty = (function () {
@@ -31,7 +37,6 @@ const updateKitty = (function () {
    * @returns {object} an object composed of payouts indexed by match patterns.
    */
   function rulesArrToObj(rulesArr: Array<Array<string>>) {
-    "use strict";
     return rulesArr
       .filter(function getMatchRules(curVal) {
         return curVal[0] === "match";
@@ -65,7 +70,6 @@ const updateKitty = (function () {
    * @returns {object} {game name: {threshold, price, rules}, ... }
    */
   function getGames() {
-    "use strict";
     const ss = SpreadsheetApp.openById(
       PropertiesService.getScriptProperties().getProperties()
         .gameRulesSpreadsheetId,
@@ -94,7 +98,6 @@ const updateKitty = (function () {
    * @returns {object} {game:[{numArr,ball,bonus,startDt,endDt},...],...}
    */
   function getPlays() {
-    "use strict";
     const today = utils.getSimpleDate();
     let start = {};
     let end = {};
@@ -155,20 +158,30 @@ const updateKitty = (function () {
    *
    * @returns {object} [[date,game name,debit,credit], ... ]
    */
-  function getKittyLastArr() {
-    "use strict";
+  function getKittyLastArr(): Array<Kitty> {
     const kittyBalanceSheet =
       SpreadsheetApp.getActive().getSheetByName("Balance Sheet")!;
     const kittyBalanceArr = kittyBalanceSheet.getDataRange().getDisplayValues();
     const kittyLastDateStr = kittyBalanceArr.slice(-1)[0][0];
     const kittyLastDate = new Date(kittyLastDateStr);
 
-    return kittyBalanceArr.filter(function (kittyRow) {
-      const curDateStr = kittyRow[0];
-      const curDate = new Date(curDateStr);
+    return kittyBalanceArr
+      .filter(function (kittyRow) {
+        const curDateStr = kittyRow[0];
+        const curDate = new Date(curDateStr);
 
-      return curDate.getTime() === kittyLastDate.getTime();
-    });
+        return curDate.getTime() === kittyLastDate.getTime();
+      })
+      .map(function (kittyRow) {
+        const kittyRowObj: Kitty = {
+          date: kittyRow[0],
+          gameName: kittyRow[1],
+          debit: kittyRow[2],
+          credit: kittyRow[3],
+        };
+
+        return kittyRowObj;
+      });
   }
 
   //******************************************************************************
@@ -180,11 +193,10 @@ const updateKitty = (function () {
    * @param {object} kittyLastArr [[date,game name,debit,credit] ... ]
    * @returns {object} {name: [{draw date,nums,jpt,ball,bonus,nxt dt,est jpt}],...}
    */
-  function getNewDrawings(kittyLastArr: Array<Array<string>>) {
-    "use strict";
-    const lastKittyDate = new Date(kittyLastArr.slice(-1)[0][0]);
+  function getNewDrawings(kittyLastArr: Array<Kitty>) {
+    const lastKittyDate = new Date(kittyLastArr.slice(-1)[0].date);
     const kittyGameNameArr = kittyLastArr.map(function (arr) {
-      return arr[1];
+      return arr.gameName;
     });
     return SpreadsheetApp.openById(
       PropertiesService.getScriptProperties().getProperties()
@@ -199,10 +211,12 @@ const updateKitty = (function () {
           .slice(1)
           .filter(function (drawingArr) {
             const curDate = new Date(drawingArr[0]);
+
             // only want drawings not already logged in the kitty
             if (curDate.getTime() > lastKittyDate.getTime()) {
               return true;
             }
+
             return (
               curDate.getTime() === lastKittyDate.getTime() &&
               kittyGameNameArr.indexOf(drawGameName) < 0
@@ -240,13 +254,17 @@ const updateKitty = (function () {
    * @returns {object} {name:[{date,numArr,ball,bonus,jackpot,nextDate,
    *                           estJackpot},...],...}
    */
-  function getActiveDraws(newDrawingsObj: {}, playsObj: {}, gamesObj: Game) {
-    "use strict";
-    return Object.keys(newDrawingsObj).reduce(function (obj, keyName) {
+  function getActiveDraws(
+    newDrawingsObj: {},
+    playsObj: {},
+    gamesObj: Game,
+  ): Array<DrawingData> {
+    const xyz = Object.keys(newDrawingsObj).reduce(function (acc, keyName) {
       // array contains drawings objects for one game
       const gameDraws = <Array<string>>(
         Object.getOwnPropertyDescriptor(newDrawingsObj, keyName)!
       );
+      let obj: DrawingData = {};
       const activeDrawsArr = gameDraws
         .filter(
           // only return drawings that have active plays
@@ -269,23 +287,28 @@ const updateKitty = (function () {
           function (drawObj) {
             const jackpot = 0;
             const threshold = 0;
-            if (
-              gamesObj[keyName].threshold === "" ||
-              gamesObj[keyName].threshold === null ||
-              gamesObj[keyName].threshold === undefined
-            ) {
+            const game = <Game>(
+              Object.getOwnPropertyDescriptor(gamesObj, keyName)
+            );
+
+            if (!game.threshold) {
               return true;
             }
             jackpot = utils.dollarsToNum(drawObj.jackpot);
             threshold = utils.dollarsToNum(gamesObj[keyName].threshold);
+
             return jackpot >= threshold;
           },
         );
+
       if (activeDrawsArr.length > 0) {
         obj[keyName] = activeDrawsArr;
       }
-      return obj;
-    }, {});
+
+      return [...acc, obj];
+    }, []);
+
+    return xyz;
   }
 
   //******************************************************************************
@@ -298,8 +321,6 @@ const updateKitty = (function () {
    * @returns {object} - [[date.getTime(),gameName,winnings,ticketCost],...]
    */
   function getWins(activeDrawsObj, gamesObj, playsObj) {
-    "use strict";
-
     // return array [[date,gameName,winnings,...]
     return Object.keys(activeDrawsObj)
       .reduce(function (result, gameName) {
@@ -398,7 +419,6 @@ const updateKitty = (function () {
    * @param {object} gamesObj - {name: {threshold, price, rules},...}
    */
   function updateKitty(wins, gamesObj) {
-    "use strict";
     const kittySsObj = SpreadsheetApp.getActive();
     wins.forEach(function (win) {
       const date = {};
@@ -441,8 +461,6 @@ const updateKitty = (function () {
 
   /** Sunk Cost Kitty - calculates, stores, and sends results. */
   function main() {
-    "use strict";
-
     // 1. Get last row of kitty data.
     const kittyLastArr = getKittyLastArr(); // [[dt,name,deb,cred]...]
 
