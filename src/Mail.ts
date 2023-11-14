@@ -7,7 +7,6 @@ DEBUG, Logger, MailApp, PropertiesService, Session, SpreadsheetApp, utils
 
 //******************************************************************************
 
-// eslint-disable-next-line no-unused-vars
 var mail = (function () {
   "use strict";
 
@@ -17,12 +16,12 @@ var mail = (function () {
 
   function getAlerts() {
     // Return alert texts for newly (in)active games.
-    return Object.keys(newDrawingsObj) // object key is gameName
+    return Object.keys(newDrawingsObj)  // object key is gameName
       .map(
-        // eslint-disable-next-line max-statements
         function checkActive(gameName) {
           var currDraw = newDrawingsObj[gameName].slice(-1)[0];
           var estJackpot;
+          var estJackpotStr;
           var jackpot;
           var newlyActive;
           var newlyInactive;
@@ -79,19 +78,18 @@ var mail = (function () {
   }
 
   /**
-   * @param {object} wins - [[date.getTime(),gameName,winnings,#of plays],...]
-   * @param {object} nextDrawingsObj - {name:[{date,numArr,jackpot,ball,bonus,
-   *                                           nextDate,estJackpot},...],...
-   *                                    }
-   * @param {object} gamesObj - {name: {threshold, price, rules},...}
-   */
-  // eslint-disable-next-line max-statements
+  * @param {object} wins - [[date.getTime(),gameName,winnings,#of plays],...]
+  * @param {object} nextDrawingsObj - {name:[{date,numArr,jackpot,ball,bonus,
+  *                                           nextDate,estJackpot},...],...
+  *                                    }
+  * @param {object} gamesObj - {name: {threshold, price, rules},...}
+  */
   function send(arg0, arg1, arg2) {
     var ss = SpreadsheetApp.getActiveSpreadsheet();
     var alertArr = [];
     var bcc = "";
     var body = "";
-    var cc = ""; // copies is comma-separated string
+    var cc = "";  // copies is comma-separated string
     var curDate = {};
     var htmlBody = "";
     var kittyBalance = 0;
@@ -138,10 +136,10 @@ var mail = (function () {
     htmlBody = wins.reduce(
       function (str, win) {
         var date = new Date(win[0]);
-        // TODO: add symbols
-        // e.g., frowny face &#9785; dollar sign &#36;
-        return str + "<p>" + date.toDateString() + "&nbsp;"
-          + win[1] + "&nbsp;winnings&nbsp;" + utils.numToUSD(win[2]) + "</p>";
+        return str + "<p>" + date.toDateString() + "&nbsp;" +
+          // TODO: add symbols
+          // e.g., frowny face &#9785; dollar sign &#36;
+          win[1] + "&nbsp;winnings&nbsp;" + utils.numToUSD(win[2]) + "</p>";
       }, "<h4>Recent results (Date, Game, Winnings):</h4>");
     alertArr.forEach(
       function (alertStr) {
