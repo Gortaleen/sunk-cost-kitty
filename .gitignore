@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 #
 .clasp.json
 #
@@ -8,3 +9,10 @@
 *.txt
 #
 out/
+=======
+# Dependency directory
+node_modules
+
+# Ignore built ts files
+dist
+>>>>>>> koppy
