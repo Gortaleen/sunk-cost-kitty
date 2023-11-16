@@ -1,9 +1,272 @@
+/**
+ * https://github.com/Gortaleen/sunk-cost-kitty
+ */
+
 function kittyUpdateRun() {
   Kitty.update();
 }
 
+/**
+ * Kitty spreadsheet functions
+ */
 const Kitty = (function () {
+  /**
+   *
+   */
+
+  function getGameRules(
+    scriptProperties: KittyScriptProperties,
+  ): Array<GameRules> {
+    /**
+     * Returns an array of Game Rules objects
+     */
+    const gameRulesSpreadsheet = SpreadsheetApp.openById(
+      scriptProperties.GAME_RULES_SPREADSHEET_ID,
+    );
+    let gameRulesArr: Array<GameRules> = [];
+
+    gameRulesArr = gameRulesSpreadsheet
+      .getSheets()
+      .map(function buildRulesObject(rulesSheet): GameRules {
+        const rulesArr: Array<Array<string>> = rulesSheet
+          .getDataRange()
+          .getDisplayValues();
+        let rulesObj: GameRules = Object();
+
+        rulesObj = {
+          game_id: rulesArr[0][1],
+          game_name: rulesArr[1][1],
+          ball: rulesArr[2][1],
+          bonus: rulesArr[3][1],
+          threshold: Number(rulesArr[4][1].slice(1)),
+          price: rulesArr[5][1]
+            ? Number(rulesArr[5][1].replace(/[\$\,]/, ""))
+            : 0,
+          matches: rulesArr.slice(6).map((row) => {
+            const payout = row[2].match(/JACKPOT/i)
+              ? row[2]
+              : Number(row[2].replace(/[\$\,]/g, ""));
+
+            return {
+              match: row[1],
+              rule: payout,
+            };
+          }),
+        };
+
+        return rulesObj;
+      });
+
+    return gameRulesArr;
+  }
+
+  /**
+   * Returns the date of the last entry in the Kitty Balance Sheet
+   */
+  function getKittyLastEdited(scriptProperties: KittyScriptProperties): Date {
+    const balanceSheet = SpreadsheetApp.openById(
+      scriptProperties.KITTY_SPREADSHEET_ID,
+    ).getSheetByName("Balance Sheet");
+    const lastRow = balanceSheet?.getLastRow();
+
+    return lastRow && lastRow > 1
+      ? balanceSheet?.getRange(lastRow, 1).getValue()
+      : Date();
+  }
+
+  /**
+   * Drawings since last Kitty spreadsheet update.
+   */
+  function getLatestDrawings(
+    scriptProperties: KittyScriptProperties,
+    kittyLastEdited: Date,
+  ): Array<GameDrawings> {
+    let drawsArr: Array<GameDrawings> = [];
+
+    drawsArr = SpreadsheetApp.openById(scriptProperties.DRAWINGS_SPREADSHEET_ID)
+      .getSheets()
+      .map(function (sheet): GameDrawings {
+        let gameDrawings: GameDrawings = Object();
+        const gameName = sheet.getName();
+
+        gameDrawings = {
+          gameName,
+          drawData: sheet
+            .getDataRange()
+            .getValues()
+            .slice(1)
+            .filter((row) => row[0] > kittyLastEdited)
+            .map(function (row): DrawingData {
+              let drawingData: DrawingData = Object();
+
+              drawingData.date = row[0];
+              drawingData.numArr = row[1]
+                .split("-")
+                .map((numStr: string) => Number(numStr));
+              drawingData.jackpot = Number(row[2]);
+              drawingData.ball = row[3];
+              drawingData.bonus = row[4];
+              drawingData.nextDate = row[5];
+              drawingData.estJackpot = row[6];
+
+              return drawingData;
+            }),
+        };
+
+        return gameDrawings;
+      });
+
+    return drawsArr;
+  }
+
+  /**
+   *
+   */
+  function getActiveGamePlays(
+    scriptProperties: KittyScriptProperties,
+    kittyLastEdited: Date,
+  ) {
+    let activeGamePlays: Array<Plays> = [];
+
+    activeGamePlays = SpreadsheetApp.openById(
+      scriptProperties.GAME_PLAYS_SPREADSHEET_ID,
+    )
+      .getSheets()
+      .map(function mapRowsToGamePlays(playSheet): Plays {
+        let gamePlays: Plays = Object();
+
+        gamePlays.gameName = playSheet.getName();
+        gamePlays.gamePlay = playSheet
+          .getDataRange()
+          .getValues()
+          .slice(1)
+          .filter(
+            (row) =>
+              row[8] &&
+              row[8] >= kittyLastEdited &&
+              (!row[9] || row[9] >= kittyLastEdited),
+          )
+          .map(function mapRowToObject(row) {
+            let play: Play = Object();
+
+            play.numArr = row.slice(0, 5).filter((val) => val);
+            play.ball = row[6];
+            play.bonus = row[7];
+            play.start = row[8];
+            play.end = row[9];
+            play.ticketCost = row[10];
+
+            return play;
+          });
+
+        return gamePlays;
+      });
+
+    return activeGamePlays;
+  }
+
+  /**
+   *
+   */
+  function calcResultsUpdateKitty(
+    scriptProperties: KittyScriptProperties,
+    gameRules: Array<GameRules>,
+    latestDrawings: Array<GameDrawings>,
+    activeGamePlays: Array<Plays>,
+  ) {
+    // for each game
+    // 1. use gameRules to check for wins by activeGamePlays in latestDrawings
+    // 2. update the Kitty Balance Sheet with results
+    // 3. send email with results message
+    const kittyBalanceSheet = SpreadsheetApp.openById(
+      scriptProperties.KITTY_SPREADSHEET_ID,
+    ).getSheetByName("Balance Sheet");
+    latestDrawings.forEach(function processOneGame(gameDrawing) {
+      const gamePLay = activeGamePlays.find((play) => {
+        return play.gameName === gameDrawing.gameName;
+      })?.gamePlay;
+      const winnings = gameDrawing.drawData.map(function getWinnings(draw) {
+        const playsForDrawing = gamePLay?.filter(
+          (play) =>
+            play.start <= draw.date && (play.end >= draw.date || !play.end),
+        );
+        const playResultArr = playsForDrawing?.map(
+          function buildRulesMatchKeys(play) {
+            const matchKey =
+              play.numArr
+                .filter((num) => draw.numArr.includes(num))
+                .length.toString() + (play.ball === draw.ball ? "B" : "_");
+
+            return matchKey;
+          },
+        )!;
+        const rules = gameRules.find(
+          (rule) => rule.game_name === gameDrawing.gameName,
+        )!;
+        const credit = playResultArr.reduce((acc, cur) => {
+          let payout = rules?.matches.find((rule) => rule.match === cur)?.rule;
+
+          payout = payout?.toString().match(/JACKPOT/i)
+            ? draw.jackpot
+            : payout
+              ? Number(payout)
+              : 0;
+
+          return acc + payout;
+        }, 0);
+
+        // add results to kitty balance sheet
+        if (playResultArr.length > 0) {
+          kittyBalanceSheet?.appendRow([
+            draw.date,
+            gameDrawing.gameName,
+            playResultArr.length * rules.price,
+            credit,
+          ]);
+        }
+
+        // end getWinnings
+        return;
+      });
+
+      // end processOneGame
+      return;
+    });
+
+    return;
+  }
+
+  /**
+   * Main function
+   */
   function update() {
+    const scriptProperties = <KittyScriptProperties>(
+      (<unknown>PropertiesService.getScriptProperties().getProperties())
+    );
+
+    // get Game rules
+    const gameRules = getGameRules(scriptProperties);
+
+    // get Kitty last edited date
+    const kittyLastEdited = getKittyLastEdited(scriptProperties);
+
+    // get Drawing results
+    const latestDrawings = getLatestDrawings(scriptProperties, kittyLastEdited);
+
+    // get active Game plays
+    const activeGamePlays = getActiveGamePlays(
+      scriptProperties,
+      kittyLastEdited,
+    );
+
+    // calculate new results and update Kitty
+    calcResultsUpdateKitty(
+      scriptProperties,
+      gameRules,
+      latestDrawings,
+      activeGamePlays,
+    );
+
     return;
   }
 
