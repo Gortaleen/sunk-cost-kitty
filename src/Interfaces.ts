@@ -1,11 +1,11 @@
 interface DrawingData {
-  date?: Date;
-  numArr?: Array<string>;
-  jackpot?: string;
-  ball?: string;
-  bonus?: string;
-  nextDate?: Date;
-  estJackpot?: string;
+  date: Date;
+  numArr: Array<number>;
+  jackpot: string;
+  ball: string;
+  bonus: string;
+  nextDate: Date;
+  estJackpot: string;
 }
 interface GameDrawings {
   gameName: string;
@@ -17,18 +17,18 @@ interface Game {
   rules: Array<string>;
 }
 interface Kitty {
-  date: string;
+  date: Date;
   gameName: string;
-  debit: string;
-  credit: string;
+  debit: number;
+  credit: number;
 }
 interface Play {
-  numArr: Array<string>;
+  numArr: Array<number>;
   ball: string;
   bonus: string;
   start: Date;
   end: Date;
-  ticketCost: number | undefined;
+  ticketCost: number;
 }
 interface Plays {
   gameName: string;
@@ -47,6 +47,6 @@ interface GameRules {
   ball: string;
   bonus: string;
   threshold?: number;
-  price?: number;
-  matches: Array<{ match: string; rule: string }>;
+  price: number;
+  matches: Array<{ match: string; rule: number }>;
 }
