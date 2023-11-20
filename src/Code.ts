@@ -1,3 +1,7 @@
+/**
+ * https://github.com/Gortaleen/sunk-cost-kitty
+ */
+
 function kittyUpdateRun() {
   Kitty.update();
 }
@@ -19,14 +23,17 @@ const Kitty = (function () {
     const gameRulesSpreadsheet = SpreadsheetApp.openById(
       scriptProperties.GAME_RULES_SPREADSHEET_ID,
     );
+    let gameRulesArr: Array<GameRules> = [];
 
-    return gameRulesSpreadsheet
+    gameRulesArr = gameRulesSpreadsheet
       .getSheets()
       .map(function buildRulesObject(rulesSheet): GameRules {
         const rulesArr: Array<Array<string>> = rulesSheet
           .getDataRange()
           .getDisplayValues();
-        let rulesObj: GameRules = {
+        let rulesObj: GameRules = Object();
+
+        rulesObj = {
           game_id: rulesArr[0][1],
           game_name: rulesArr[1][1],
           ball: rulesArr[2][1],
@@ -40,6 +47,8 @@ const Kitty = (function () {
 
         return rulesObj;
       });
+
+    return gameRulesArr;
   }
 
   /**
@@ -63,15 +72,16 @@ const Kitty = (function () {
     scriptProperties: KittyScriptProperties,
     kittyLastEdited: Date,
   ): Array<GameDrawings> {
-    let drawsArr: Array<GameDrawings> = Object();
+    let drawsArr: Array<GameDrawings> = [];
 
     drawsArr = SpreadsheetApp.openById(scriptProperties.DRAWINGS_SPREADSHEET_ID)
       .getSheets()
       .map(function (sheet): GameDrawings {
         let gameDrawings: GameDrawings = Object();
+        const gameName = sheet.getName();
 
         gameDrawings = {
-          gameName: sheet.getName(),
+          gameName,
           drawData: sheet
             .getDataRange()
             .getValues()
@@ -81,7 +91,9 @@ const Kitty = (function () {
               let drawingData: DrawingData = Object();
 
               drawingData.date = row[0];
-              drawingData.numArr = row[1];
+              drawingData.numArr = row[1]
+                .split("-")
+                .map((numStr: string) => +numStr);
               drawingData.jackpot = row[2];
               drawingData.ball = row[3];
               drawingData.bonus = row[4];
@@ -105,13 +117,13 @@ const Kitty = (function () {
     scriptProperties: KittyScriptProperties,
     kittyLastEdited: Date,
   ) {
-    let activeGamePlays: Array<Plays> = Object();
+    let activeGamePlays: Array<Plays> = [];
 
     activeGamePlays = SpreadsheetApp.openById(
       scriptProperties.GAME_PLAYS_SPREADSHEET_ID,
     )
       .getSheets()
-      .map(function (playSheet): Plays {
+      .map(function mapRowsToGamePlays(playSheet): Plays {
         let gamePlays: Plays = Object();
 
         gamePlays.gameName = playSheet.getName();
@@ -125,7 +137,7 @@ const Kitty = (function () {
               row[8] <= kittyLastEdited &&
               (!row[9] || row[9] >= kittyLastEdited),
           )
-          .map(function (row) {
+          .map(function mapRowToObject(row) {
             let play: Play = Object();
 
             play.numArr = row.slice(0, 5).filter((val) => val);
@@ -147,7 +159,67 @@ const Kitty = (function () {
   /**
    *
    */
-  function calcResultsUpdateKitty() {}
+  function calcResultsUpdateKitty(
+    scriptProperties: KittyScriptProperties,
+    gameRules: Array<GameRules>,
+    latestDrawings: Array<GameDrawings>,
+    activeGamePlays: Array<Plays>,
+  ) {
+    // for each game
+    // 1. use gameRules to check for wins by activeGamePlays in latestDrawings
+    // 2. update the Kitty Balance Sheet with results
+    // 3. send email with results message
+
+    latestDrawings.forEach(function processOneGame(gameDrawing) {
+      const gamePLay = activeGamePlays.find((play) => {
+        return play.gameName === gameDrawing.gameName;
+      })?.gamePlay;
+
+      gameDrawing.drawData.forEach((draw) => {
+        const playsForDrawing = gamePLay?.filter(
+          (play) => play.start <= draw.date && play.end >= draw.date,
+        );
+        const playResultArr = playsForDrawing?.map(
+          function buildRuleMatchKeys(play) {
+            const matchKey =
+              play.numArr
+                .filter((num) => draw.numArr.includes(num))
+                .length.toString() + (play.ball === draw.ball ? "B" : "_");
+            debugger;
+            return matchKey;
+          },
+        )!;
+        const rules = gameRules.find(
+          (rule) => rule.game_name === gameDrawing.gameName,
+        );
+        const result = Object.getOwnPropertyDescriptor(
+          rules?.matches,
+          playResultArr[0],
+        );
+      });
+
+      // gamePLay
+      //   ?.filter(function findPlaysWithDrawings(play) {
+      //     return gameDrawing.drawData.filter(
+      //       (gameDraw) =>
+      //         play.start <= gameDraw.date && play.end >= gameDraw.date,
+      //     );
+      //   })
+      //   .forEach(function tbd2(play) {
+      //     // then if in range use
+      //     play.numArr;
+      //     // and
+      //     gameDrawing.drawData[0].numArr;
+      //     // to calculate win
+
+      //     // play.ball;
+      //     // play.bonus;
+      //     // play.ticketCost;
+      //   });
+    });
+
+    return;
+  }
 
   /**
    * Main function
@@ -173,6 +245,12 @@ const Kitty = (function () {
     );
 
     // calculate new results and update Kitty
+    calcResultsUpdateKitty(
+      scriptProperties,
+      gameRules,
+      latestDrawings,
+      activeGamePlays,
+    );
 
     return;
   }
