@@ -41,7 +41,14 @@ const Kitty = (function () {
           threshold: Number(rulesArr[4][1].slice(1)),
           price: Number(rulesArr[5][1].slice),
           matches: rulesArr.slice(6).map((row) => {
-            return { match: row[1], rule: Number(row[2]) };
+            const payout = row[2].match(/JACKPOT/i)
+              ? row[2]
+              : Number(row[2].replace(/[\$\,]/, ""));
+
+            return {
+              match: row[1],
+              rule: payout,
+            };
           }),
         };
 
@@ -134,7 +141,7 @@ const Kitty = (function () {
           .filter(
             (row) =>
               row[8] &&
-              row[8] <= kittyLastEdited &&
+              row[8] >= kittyLastEdited &&
               (!row[9] || row[9] >= kittyLastEdited),
           )
           .map(function mapRowToObject(row) {
@@ -174,29 +181,34 @@ const Kitty = (function () {
       const gamePLay = activeGamePlays.find((play) => {
         return play.gameName === gameDrawing.gameName;
       })?.gamePlay;
-
-      gameDrawing.drawData.forEach((draw) => {
+      const winnings = gameDrawing.drawData.map(function getWinnings(draw) {
         const playsForDrawing = gamePLay?.filter(
-          (play) => play.start <= draw.date && play.end >= draw.date,
+          (play) =>
+            play.start <= draw.date && (play.end >= draw.date || !play.end),
         );
         const playResultArr = playsForDrawing?.map(
-          function buildRuleMatchKeys(play) {
+          function buildRulesMatchKeys(play) {
             const matchKey =
               play.numArr
                 .filter((num) => draw.numArr.includes(num))
                 .length.toString() + (play.ball === draw.ball ? "B" : "_");
-            debugger;
+
             return matchKey;
           },
         )!;
+
         const rules = gameRules.find(
           (rule) => rule.game_name === gameDrawing.gameName,
         );
-        const result = Object.getOwnPropertyDescriptor(
-          rules?.matches,
-          playResultArr[0],
-        );
+        const payout = rules?.matches.find((rule) => {
+          return rule.match === playResultArr[0];
+        })?.rule;
+
+        return payout?.toString().match(/JACKPOT/i) ? draw.jackpot : payout;
       });
+
+      if (gameDrawing.gameName === "Mega Millions")
+        console.log("winnings:", winnings);
 
       // gamePLay
       //   ?.filter(function findPlaysWithDrawings(play) {

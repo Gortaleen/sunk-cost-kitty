@@ -48,5 +48,5 @@ interface GameRules {
   bonus: string;
   threshold?: number;
   price: number;
-  matches: Array<{ match: string; rule: number }>;
+  matches: Array<{ match: string; rule: number | string }>;
 }
