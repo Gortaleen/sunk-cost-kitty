@@ -39,7 +39,9 @@ const Kitty = (function () {
           ball: rulesArr[2][1],
           bonus: rulesArr[3][1],
           threshold: Number(rulesArr[4][1].slice(1)),
-          price: Number(rulesArr[5][1].slice),
+          price: rulesArr[5][1]
+            ? Number(rulesArr[5][1].replace(/[\$\,]/, ""))
+            : 0,
           matches: rulesArr.slice(6).map((row) => {
             const payout = row[2].match(/JACKPOT/i)
               ? row[2]
@@ -176,7 +178,9 @@ const Kitty = (function () {
     // 1. use gameRules to check for wins by activeGamePlays in latestDrawings
     // 2. update the Kitty Balance Sheet with results
     // 3. send email with results message
-
+    const kittyBalanceSheet = SpreadsheetApp.openById(
+      scriptProperties.KITTY_SPREADSHEET_ID,
+    ).getSheetByName("Balance Sheet");
     latestDrawings.forEach(function processOneGame(gameDrawing) {
       const gamePLay = activeGamePlays.find((play) => {
         return play.gameName === gameDrawing.gameName;
@@ -198,7 +202,7 @@ const Kitty = (function () {
         )!;
         const rules = gameRules.find(
           (rule) => rule.game_name === gameDrawing.gameName,
-        );
+        )!;
         const credit = playResultArr.reduce((acc, cur) => {
           let payout = rules?.matches.find((rule) => rule.match === cur)?.rule;
 
@@ -207,21 +211,26 @@ const Kitty = (function () {
             : payout
               ? Number(payout)
               : 0;
-          console.log(cur, payout, rules?.matches);
 
           return acc + payout;
         }, 0);
 
-        return {
-          date: draw.date,
-          gameName: gameDrawing.gameName,
-          debit: playResultArr.length * (rules?.price || 0),
-          credit,
-        };
+        // add results to kitty balance sheet
+        if (playResultArr.length > 0) {
+          kittyBalanceSheet?.appendRow([
+            draw.date,
+            gameDrawing.gameName,
+            playResultArr.length * rules.price,
+            credit,
+          ]);
+        }
+
+        // end getWinnings
+        return;
       });
 
-      if (gameDrawing.gameName === "Mega Millions")
-        console.log("winnings:", winnings);
+      // end processOneGame
+      return;
     });
 
     return;
