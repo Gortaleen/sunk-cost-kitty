@@ -43,7 +43,7 @@ const Kitty = (function () {
           matches: rulesArr.slice(6).map((row) => {
             const payout = row[2].match(/JACKPOT/i)
               ? row[2]
-              : Number(row[2].replace(/[\$\,]/, ""));
+              : Number(row[2].replace(/[\$\,]/g, ""));
 
             return {
               match: row[1],
@@ -100,8 +100,8 @@ const Kitty = (function () {
               drawingData.date = row[0];
               drawingData.numArr = row[1]
                 .split("-")
-                .map((numStr: string) => +numStr);
-              drawingData.jackpot = row[2];
+                .map((numStr: string) => Number(numStr));
+              drawingData.jackpot = Number(row[2]);
               drawingData.ball = row[3];
               drawingData.bonus = row[4];
               drawingData.nextDate = row[5];
@@ -196,38 +196,32 @@ const Kitty = (function () {
             return matchKey;
           },
         )!;
-
         const rules = gameRules.find(
           (rule) => rule.game_name === gameDrawing.gameName,
         );
-        const payout = rules?.matches.find((rule) => {
-          return rule.match === playResultArr[0];
-        })?.rule;
+        const credit = playResultArr.reduce((acc, cur) => {
+          let payout = rules?.matches.find((rule) => rule.match === cur)?.rule;
 
-        return payout?.toString().match(/JACKPOT/i) ? draw.jackpot : payout;
+          payout = payout?.toString().match(/JACKPOT/i)
+            ? draw.jackpot
+            : payout
+              ? Number(payout)
+              : 0;
+          console.log(cur, payout, rules?.matches);
+
+          return acc + payout;
+        }, 0);
+
+        return {
+          date: draw.date,
+          gameName: gameDrawing.gameName,
+          debit: playResultArr.length * (rules?.price || 0),
+          credit,
+        };
       });
 
       if (gameDrawing.gameName === "Mega Millions")
         console.log("winnings:", winnings);
-
-      // gamePLay
-      //   ?.filter(function findPlaysWithDrawings(play) {
-      //     return gameDrawing.drawData.filter(
-      //       (gameDraw) =>
-      //         play.start <= gameDraw.date && play.end >= gameDraw.date,
-      //     );
-      //   })
-      //   .forEach(function tbd2(play) {
-      //     // then if in range use
-      //     play.numArr;
-      //     // and
-      //     gameDrawing.drawData[0].numArr;
-      //     // to calculate win
-
-      //     // play.ball;
-      //     // play.bonus;
-      //     // play.ticketCost;
-      //   });
     });
 
     return;

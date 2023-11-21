@@ -1,7 +1,7 @@
 interface DrawingData {
   date: Date;
   numArr: Array<number>;
-  jackpot: string;
+  jackpot: number;
   ball: string;
   bonus: string;
   nextDate: Date;
