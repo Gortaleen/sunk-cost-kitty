@@ -174,18 +174,16 @@ const Kitty = (function () {
     latestDrawings: Array<GameDrawings>,
     activeGamePlays: Array<Plays>,
   ) {
-    // for each game
-    // 1. use gameRules to check for wins by activeGamePlays in latestDrawings
-    // 2. update the Kitty Balance Sheet with results
-    // 3. send email with results message
     const kittyBalanceSheet = SpreadsheetApp.openById(
       scriptProperties.KITTY_SPREADSHEET_ID,
     ).getSheetByName("Balance Sheet");
+
     latestDrawings.forEach(function processOneGame(gameDrawing) {
       const gamePLay = activeGamePlays.find((play) => {
         return play.gameName === gameDrawing.gameName;
       })?.gamePlay;
-      const winnings = gameDrawing.drawData.map(function getWinnings(draw) {
+
+      gameDrawing.drawData.map(function getWinnings(draw) {
         const playsForDrawing = gamePLay?.filter(
           (play) =>
             play.start <= draw.date && (play.end >= draw.date || !play.end),
@@ -220,9 +218,14 @@ const Kitty = (function () {
           kittyBalanceSheet?.appendRow([
             draw.date,
             gameDrawing.gameName,
-            playResultArr.length * rules.price,
             credit,
+            playResultArr.length * rules.price,
           ]);
+          MailApp.sendEmail(
+            "kevin.griffin@gmail.com",
+            "test",
+            gameDrawing.gameName + " results: " + credit,
+          );
         }
 
         // end getWinnings
